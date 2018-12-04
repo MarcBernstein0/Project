@@ -13,10 +13,10 @@ type Program = [Stmt]
 
 
 data Stmt = Def String [String] Stmt
-          | while Expr Stmt
+          | While [Expr] Stmt
           | Block [Stmt]
-          | If Expr Stmt
-          | IfElse Expr Stmt Stmt
+          | If [Expr] Stmt
+          | IfElse [Expr] Stmt Stmt
           | Assign Expr Expr
           | Id Expr 
           | Ret Expr
@@ -41,14 +41,12 @@ data Expr = Val Int
           | GtEq Expr Expr
           | And Expr Expr 
           | Or Expr Expr
-          | Not Expr Exp
+          | Not Expr Expr
 
           | Var String
-
-
-          
-
           deriving Show
+
+
 
 
 
