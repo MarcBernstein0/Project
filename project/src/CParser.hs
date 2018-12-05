@@ -44,7 +44,8 @@ notParser = (do token $ literal "!"
 
 
 atoms :: Parser Stmt
-atoms = ints <||> ifParser <||> ifElseParser <||> whileParser
+atoms = ints <||> assignParser
+
 
 ints :: Parser Stmt
 ints = do res <- token $ intParser
@@ -68,11 +69,11 @@ ifElseParser = do token $ literal "if"
                   expr <- orParser
                   token $ literal ")"
                   token $ literal "{"
-                  blockT <- orParser
+                  blockT <- blockParser
                   token $ literal "}"
                   token $ literal "else"
                   token $ literal "{"
-                  blockEl <- orParser
+                  blockEl <- blockParser
                   token $ literal "}"
                   return $ IfElse expr blockT blockEl
 
@@ -83,7 +84,7 @@ whileParser = do token $ literal "while"
                  traceShowM expr
                  token $ literal ")"
                  token $ literal "{"
-                 block <- orParser
+                 block <- blockParser
                  --traceShowM block
                  token $ literal "}"
                  return $ While expr block
@@ -91,8 +92,25 @@ whileParser = do token $ literal "while"
 --bleh                 
 
 assignParser :: Parser Stmt
-assignParser = do varName <- token $ varPaser
-                  token $ "="
-                  expr <- parser
+assignParser = do varName <- token $ varParser
+                  token $ literal "="
+                  expr <- orParser
                   return $ Assign varName expr 
+
+funcParser :: Parser Stmt
+funcParser = do token $ literal "Def"
+                funcName <- varParser
+                token $ literal "("
+                args <- varParser
+                token $ literal ")"
+                token $ literal "{"
+                block <-blockParser
+                token $ literal "}"
+                return $ Def funcName [args] block
+
+
+blockParser :: Parser Stmt
+blockParser = do res <- parser'
+                 return $ Block [res]
+
 
