@@ -29,7 +29,7 @@ notParser = (do token $ literal "!"
 
 
 atoms :: Parser Stmt
-atoms = ints <||> ifParser <||> ifElseParser 
+atoms = ints <||> ifParser <||> ifElseParser <||> whileParser
 
 ints :: Parser Expr
 ints = do res <- token $ intParser
