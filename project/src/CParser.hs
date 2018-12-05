@@ -3,6 +3,8 @@ module CParser where
 import Ast
 import ParserMonad
 
+import Debug.Trace
+
 parser :: Parser Program
 parser = undefined
 
@@ -17,21 +19,21 @@ parser' = undefined
 
 
 
-multDivModParser :: Parser Expr
+multDivModParser :: Parser Stmt
 multDivModParser = withInfix notParser [("*",Mult), ("/", Div), ("%",Mod)]
 
-notParser :: Parser Expr
+notParser :: Parser Stmt
 notParser = (do token $ literal "!"
                 res <- notParser
-                return $ Not res) <||> int
-
+                --traceShowM res
+                return $ Not res) <||> ints
 
 
 
 atoms :: Parser Stmt
-atoms = ints <||> ifParser <||> ifElseParser <||> whileParser
+atoms = ifParser <||> ifElseParser <||> whileParser
 
-ints :: Parser Expr
+ints :: Parser Stmt
 ints = do res <- token $ intParser
           return $ Val res
 
