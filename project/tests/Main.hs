@@ -2,7 +2,13 @@ module Main where
 
 import Test.Tasty
 
-import TestsProject
+
+
+import IcInterpreterTest
+import AstInterperterTests
+import CompilerTests
+import FeaturesTests
+import ParserTests
 
 main = defaultMain testSuite
 
@@ -10,18 +16,11 @@ main = defaultMain testSuite
 
 testSuite =
   testGroup
-    "testsProject"
+    "allTests"
     [
-        TestsProject.test1,
-        TestsProject.test2,
-        TestsProject.test3,
-        TestsProject.test4,
-        TestsProject.test5,
-        TestsProject.test6,
-        TestsProject.test7,
-        TestsProject.test8,
-        TestsProject.test9,
-        TestsProject.test10,
-        TestsProject.test11,
-        TestsProject.test12,
+        IcInterpreterTest.unitTests,
+        AstInterperterTests.unitTests,
+        CompilerTests.unitTests,
+        FeaturesTests.unitTests,
+        ParserTests.unitTests
     ]

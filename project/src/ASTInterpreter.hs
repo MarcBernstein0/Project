@@ -1,53 +1,21 @@
 module ASTInterpreter where
 
-
-import Prelude
-
-import qualified Data.Map as Map
-
-import Debug.Trace
+import Ast
+import StatefulUnsafeMonad
 
 
-
-type Program = [Stmt]
-
-
-data Stmt = Def String [String] Stmt
-          | While [Expr] Stmt
-          | Block [Stmt]
-          | If [Expr] Stmt
-          | IfElse [Expr] Stmt Stmt
-          | Assign Expr Expr
-          | Id Expr 
-          | Ret Expr
-          | Print Expr
-          | Break
-          | Continue 
-          deriving Show
-
-
-
-data Expr = Val Int 
-          | Plus Expr Expr
-          | Sub Expr Expr 
-          | Mult Expr Expr 
-          | Divide Expr Expr
-          | Mods Expr Expr
-          | Eq Expr Expr
-          | NEq Expr Expr
-          | Lt Expr Expr
-          | LtEq Expr Expr
-          | Gt Expr Expr
-          | GtEq Expr Expr
-          | And Expr Expr 
-          | Or Expr Expr
-          | Not Expr Expr
-
-          | Var String
-          deriving Show
+data State -- TODO change to be the type of state, you have freedom for how you implement it
 
 
 
 
 
-
+eval :: Program -> [String]
+eval p = undefined
+-- eval p = getPrints $ snd $ app (eval' p) undefined
+--
+-- getPrints :: State -> [String]
+-- getPrints = undefined
+--
+-- eval' :: Program -> StatefulUnsafe State Int
+-- eval' = undefined
