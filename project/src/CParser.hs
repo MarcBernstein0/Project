@@ -85,3 +85,9 @@ whileParser = do token $ literal "while"
                  return $ While expr block
 
 --bleh                 
+
+assignParser :: Parser Stmt
+assignParser = do varName <- token $ varPaser
+                  token $ "="
+                  expr <- parser
+                  return $ Assign varName expr 
