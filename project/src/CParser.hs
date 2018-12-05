@@ -8,9 +8,11 @@ import Debug.Trace
 parser :: Parser Program
 parser = undefined
 
-parser' :: Parser Stmt
-parser' = undefined
-
+parser' :: Parser [Stmt]
+parser' = (do res <- orParser
+              token $ literal ";"
+              rest <- parser'
+              return $ [res] ++ rest) <||> returnParser
 
 
 
@@ -38,7 +40,7 @@ multDivModParser = withInfix notParser [("*",Mult), ("/", Div), ("%",Mod)]
 notParser :: Parser Stmt
 notParser = (do token $ literal "!"
                 res <- notParser
-                --traceShowM res
+                traceShowM res
                 return $ Not res) <||> atoms
 
 
@@ -46,11 +48,19 @@ notParser = (do token $ literal "!"
 atoms :: Parser Stmt
 atoms = ints <||> assignParser
 
+statements :: Parser Stmt
+statements = ifParser <||> ifElseParser <||> whileParser <||> funcParser
 
 ints :: Parser Stmt
 ints = do res <- token $ intParser
           return $ Val res
 
+
+returnParser :: Parser [Stmt]
+returnParser = do token $ literal "return "
+                  res <- orParser
+                  token $ literal ";"
+                  return $ [Ret res]
 
 ifParser :: Parser Stmt
 ifParser = do token $ literal "if"
@@ -58,9 +68,7 @@ ifParser = do token $ literal "if"
               expr <- orParser
               --traceShowM expr
               token $ literal ")"
-              token $ literal "{"
-              block <- orParser
-              token $ literal "}"
+              block <- blockParser
               return $ If expr block
 
 ifElseParser :: Parser Stmt
@@ -84,12 +92,12 @@ whileParser = do token $ literal "while"
                  traceShowM expr
                  token $ literal ")"
                  token $ literal "{"
-                 block <- blockParser
+                 block <- orParser
                  --traceShowM block
                  token $ literal "}"
                  return $ While expr block
 
---bleh                 
+-- --bleh                 
 
 assignParser :: Parser Stmt
 assignParser = do varName <- token $ varParser
@@ -98,19 +106,31 @@ assignParser = do varName <- token $ varParser
                   return $ Assign varName expr 
 
 funcParser :: Parser Stmt
-funcParser = do token $ literal "Def"
+funcParser = do token $ literal "def"
                 funcName <- varParser
+                traceShowM funcName
                 token $ literal "("
                 args <- varParser
+                traceShowM args
                 token $ literal ")"
-                token $ literal "{"
                 block <-blockParser
-                token $ literal "}"
                 return $ Def funcName [args] block
+
+-- parens :: Parser Stmt
+-- parens = do token $ literal "("
+--             res <- parser
+--             token $ literal ")"
+--             return res
 
 
 blockParser :: Parser Stmt
-blockParser = do res <- parser'
-                 return $ Block [res]
+blockParser = do token $ literal "{"
+                 res <- parser'
+                 token $ literal "}"
+                 return $ Block res
 
+
+
+x = "while( if(3==2) {3}) {2}"
+y = "while(3==2){2}"
 
