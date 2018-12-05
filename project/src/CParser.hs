@@ -17,7 +17,17 @@ parser' = undefined
 
 
 
+orParser :: Parser Stmt
+orParser = withInfix andParser [("||", Or)]
 
+andParser :: Parser Stmt
+andParser = withInfix condParser [("&&", And)]
+
+condParser :: Parser Stmt
+condParser = withInfix addSubParser [(">", Gt), ("<", Lt), (">=", GtEq), ("<=", LtEq), ("!=", NEq), ("==", Eq)]
+
+addSubParser :: Parser Stmt
+addSubParser = withInfix multDivModParser [("+", Plus), ("-", Sub)]
 
 multDivModParser :: Parser Stmt
 multDivModParser = withInfix notParser [("*",Mult), ("/", Div), ("%",Mod)]
@@ -26,12 +36,12 @@ notParser :: Parser Stmt
 notParser = (do token $ literal "!"
                 res <- notParser
                 --traceShowM res
-                return $ Not res) <||> ints
+                return $ Not res) <||> atoms
 
 
 
 atoms :: Parser Stmt
-atoms = ifParser <||> ifElseParser <||> whileParser
+atoms = ints <||> ifParser <||> ifElseParser <||> whileParser
 
 ints :: Parser Stmt
 ints = do res <- token $ intParser
@@ -42,9 +52,10 @@ ifParser :: Parser Stmt
 ifParser = do token $ literal "if"
               token $ literal "("
               expr <- ints
-              token $ literal "("
+              --traceShowM expr
+              token $ literal ")"
               token $ literal "{"
-              block <- parser'
+              block <- orParser
               token $ literal "}"
               return $ If expr block
 
@@ -52,15 +63,15 @@ ifElseParser :: Parser Stmt
 ifElseParser = do token $ literal "if"
                   token $ literal "("
                   expr <- ints
-                  token $ literal "("
+                  token $ literal ")"
                   token $ literal "{"
-                  block <- parser'
+                  blockT <- orParser
                   token $ literal "}"
                   token $ literal "else"
                   token $ literal "{"
-                  blockEl <- parser'
+                  blockEl <- orParser
                   token $ literal "}"
-                  return $ IfElse expr Continue Continue
+                  return $ IfElse expr blockT blockEl
 
 whileParser :: Parser Stmt
 whileParser = do token $ literal "while"
@@ -68,6 +79,7 @@ whileParser = do token $ literal "while"
                  expr <- ints
                  token $ literal ")"
                  token $ literal "{"
-                 block <- parser'
+                 block <- orParser
+                 --traceShowM block
                  token $ literal "}"
                  return $ While expr block
