@@ -23,8 +23,11 @@ orParser = withInfix andParser [("||", Or)]
 andParser :: Parser Stmt
 andParser = withInfix condParser [("&&", And)]
 
+
 condParser :: Parser Stmt
-condParser = withInfix addSubParser [(">", Gt), ("<", Lt), (">=", GtEq), ("<=", LtEq), ("!=", NEq), ("==", Eq)]
+condParser = withInfix addSubParser [(">=", GtEq), (">", Gt), 
+                                    ("<=", LtEq), ("<", Lt), 
+                                    ("!=", NEq), ("==", Eq)]
 
 addSubParser :: Parser Stmt
 addSubParser = withInfix multDivModParser [("+", Plus), ("-", Sub)]
@@ -51,7 +54,7 @@ ints = do res <- token $ intParser
 ifParser :: Parser Stmt
 ifParser = do token $ literal "if"
               token $ literal "("
-              expr <- ints
+              expr <- orParser
               --traceShowM expr
               token $ literal ")"
               token $ literal "{"
@@ -62,7 +65,7 @@ ifParser = do token $ literal "if"
 ifElseParser :: Parser Stmt
 ifElseParser = do token $ literal "if"
                   token $ literal "("
-                  expr <- ints
+                  expr <- orParser
                   token $ literal ")"
                   token $ literal "{"
                   blockT <- orParser
@@ -76,12 +79,12 @@ ifElseParser = do token $ literal "if"
 whileParser :: Parser Stmt
 whileParser = do token $ literal "while"
                  token $ literal "("
-                 expr <- ints
+                 expr <- orParser
+                 traceShowM expr
                  token $ literal ")"
                  token $ literal "{"
                  block <- orParser
                  --traceShowM block
                  token $ literal "}"
                  return $ While expr block
-
---bleh                 
+                 
