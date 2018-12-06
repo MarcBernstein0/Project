@@ -6,161 +6,136 @@ import ParserMonad
 import Debug.Trace
 
 parser :: Parser Program
-parser = do code <- rep funcParser
-            return $ P code
-
-line :: Parser Stmt
-line = (do res <- orParser
-           token $ literal ";"
-           return res) <||> returnParser
-
-contBreakParser :: Parser Stmt
-contBreakParser = do res <- token $ (literal "break;") <||> (literal "continue;")
-                     if res == "break;"
-                      then return Break
-                      else return Continue
-
-printParser :: Parser Stmt
-printParser = do token $ literal "print"
-                 res <- orParser
-                 token $ literal ";"
-                 return $ Print res
+parser = undefined --do code <- rep funcParser
+            --return $ P code
 
 
-keywords = ["def","return","when","if","then","else","break","continue","print"]
+functionParser :: Parser Stmt
+functionParser = do token $ literal "def"
+                    name <- varParser
+                    token $ literal "("
+                    args <- varParser
+                    token $ literal ")"
+                    block <- blockParser
+                    return $ Def name [args] block
 
 
-varibleParser :: Parser Stmt
-varibleParser = do x <- token $ varParser
-                   if x `elem` keywords
-                   then failParse
-                   else return $ Var x
+argSingle :: Parser String
+argSingle = do arg <- varParser
+               token $ literal ","
+               return arg
+
+args :: Parser [String]
+args = do arg <- rep argSingle
+          return arg
 
 
-
-orParser :: Parser Stmt
+orParser :: Parser Expr
 orParser = withInfix andParser [("||", Or)]
 
-andParser :: Parser Stmt
+andParser :: Parser Expr
 andParser = withInfix condParser [("&&", And)]
 
 
-condParser :: Parser Stmt
+condParser :: Parser Expr
 condParser = withInfix addSubParser [(">=", GtEq), (">", Gt),
                                     ("<=", LtEq), ("<", Lt),
                                     ("!=", NEq), ("==", Eq)]
 
-addSubParser :: Parser Stmt
+addSubParser :: Parser Expr
 addSubParser = withInfix multDivModParser [("+", Plus), ("-", Sub)]
 
-multDivModParser :: Parser Stmt
+multDivModParser :: Parser Expr
 multDivModParser = withInfix notParser [("*",Mult), ("/", Div), ("%",Mod)]
 
-notParser :: Parser Stmt
+notParser :: Parser Expr
 notParser = (do token $ literal "!"
                 res <- notParser
                 return $ Not res) <||> atoms
 
 
-
-
-atoms :: Parser Stmt
-atoms = ints <||> assignParser <||> varibleParser
-
-statements :: Parser Stmt
-statements = ifElseParser <||> ifParser <||> whileParser <||> line <||> contBreakParser <||> printParser
-
-ints :: Parser Stmt
-ints = do res <- token $ intParser
-          return $ Val res
-
-
-returnParser :: Parser Stmt
-returnParser = do token $ literal "return "
-                  res <- condParser
-                  token $ literal ";"
-                  return $ Ret res
+statments :: Parser Stmt
+statments = ifElseParser <||> ifParser <||> whileParser <||> assignParser <||> contBreakParser <||> printParser <||> line <||> returnParser
+ 
 
 ifParser :: Parser Stmt
 ifParser = do token $ literal "if"
               token $ literal "("
               expr <- orParser
-              traceShowM expr
               token $ literal ")"
-             -- token $ literal "{"
-              block <- blockParser
-              traceShowM block
+              block <- blockParser 
               return $ If expr block
+
 
 ifElseParser :: Parser Stmt
 ifElseParser = do token $ literal "if"
                   token $ literal "("
                   expr <- orParser
-                  traceShowM expr
                   token $ literal ")"
-                  -- token $ literal "{"
                   block <- blockParser
-                  traceShowM block
                   token $ literal "else"
-                  blockEl <- blockParser
-                  return $ IfElse expr block blockEl
+                  blockF <- blockParser 
+                  return $ IfElse expr block blockF
+
 
 whileParser :: Parser Stmt
 whileParser = do token $ literal "while"
                  token $ literal "("
-                 expr <- orParser
-                 --traceShowM expr
+                 expr <- orParser 
                  token $ literal ")"
-                 -- token $ literal "{"
                  block <- blockParser
-                 --traceShowM block
                  return $ While expr block
 
--- --bleh
-
 assignParser :: Parser Stmt
-assignParser = do varName <- token $ varParser
+assignParser = do varName <- varParser
                   token $ literal "="
-                  expr <- condParser
-                  return $ Assign varName expr
+                  var <- orParser
+                  token $ literal ";"
+                  return $ Assign varName var 
 
+contBreakParser :: Parser Stmt
+contBreakParser = do res <- token $ (literal "continue;" <||> literal "break;")
+                     if res == "continue;"
+                      then return Continue
+                      else return Break
 
-argsParser :: Parser [String]
-argsParser = (do var <- varParser
-                 token $ literal ","
-                 rest <- argsParser
-                 return var ++ rest) <||> singleArgsParser
+printParser :: Parser Stmt
+printParser = do token $ literal "print "
+                 res <- orParser
+                 return $ Print res
 
-                 
-singleArgsParser :: Parser [String]
-singleArgsParser = do var <- varParser
-                      return [var]
+line :: Parser Stmt
+line = do res <-  orParser
+          token $ literal ";"
+          return $ Line res
 
-funcParser :: Parser Stmt
-funcParser = do token $ literal "def"
-                funcName <- varParser
-                traceShowM funcName
-                token $ literal "("
-                args <- varParser 
-                traceShowM args
-                token $ literal ")"
-                -- --token $ literal "{"
-                -- block <- blockParser 
-                return $ Def funcName [args] Continue
-
-parens :: Parser Program
-parens = do token $ literal "("
-            res <- parser
-            token $ literal ")"
-            return res
+returnParser :: Parser Stmt
+returnParser = do token $ literal "return"
+                  res <- orParser
+                  token $ literal ";"
+                  return $ Ret res
 
 
 blockParser :: Parser Stmt
-blockParser = (do token $ literal "{"
-                  res <- rep statements
-                  --traceShowM res
-                  token $ literal "}"
-                  return $ Block res)
+blockParser = do token $ literal "{"
+                 res <- rep statments 
+                 traceShowM res
+                 token $ literal "}"
+                 return $ Block res
+
+atoms :: Parser Expr
+atoms = ints <||> vars
+
+
+
+ints :: Parser Expr 
+ints = do res <- intParser
+          return $ Val res
+
+vars :: Parser Expr
+vars = do var <- varParser
+          return $ Var var
+
 
 
 
