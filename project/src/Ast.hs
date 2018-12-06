@@ -1,7 +1,7 @@
 module Ast where
 
 
-type Program = [Stmt]
+data Program = P [Stmt]
 
 
 -- data Stmt = Def String [String] Stmt
@@ -44,7 +44,7 @@ data Stmt = Def String [String] Stmt
           | While Stmt Stmt
           | Block [Stmt]
           | If Stmt Stmt
-          | IfElse Stmt Stmt Stmt
+          | Else Stmt
           | Assign String Stmt
           | Id Stmt 
           | Ret Stmt

@@ -8,12 +8,16 @@ import Debug.Trace
 parser :: Parser Program
 parser = undefined
 
-parser' :: Parser [Stmt]
-parser' = (do res <- orParser
-              traceShowM res
-              token $ literal ";"
-              rest <- parser'
-              return $ [res] ++ rest) <||> returnParser 
+
+line :: Parser Stmt
+line = (do res <- orParser
+           token $ literal ";"
+           return res) <||> returnParser
+-- parser' = (do res <- orParser
+--               traceShowM res
+--               token $ literal ";"
+--               rest <- parser'
+--               return $ [res] ++ rest) <||> returnParser 
 
 keywords = ["def","return","when","if","then","else"]
 
@@ -48,8 +52,8 @@ multDivModParser = withInfix notParser [("*",Mult), ("/", Div), ("%",Mod)]
 notParser :: Parser Stmt
 notParser = (do token $ literal "!"
                 res <- notParser
-                traceShowM res
                 return $ Not res) <||> atoms
+
 
 
 
@@ -57,18 +61,18 @@ atoms :: Parser Stmt
 atoms = ints <||> assignParser <||> varibleParser
 
 statements :: Parser Stmt
-statements = ifParser <||> ifElseParser <||> whileParser <||> funcParser
+statements = ifParser <||> elseParser <||> whileParser 
 
 ints :: Parser Stmt
 ints = do res <- token $ intParser
           return $ Val res
 
 
-returnParser :: Parser [Stmt]
+returnParser :: Parser Stmt
 returnParser = do token $ literal "return "
                   res <- orParser
                   token $ literal ";"
-                  return $ [Ret res]
+                  return $ Ret res
 
 ifParser :: Parser Stmt
 ifParser = do token $ literal "if"
@@ -76,28 +80,21 @@ ifParser = do token $ literal "if"
               expr <- orParser
               --traceShowM expr
               token $ literal ")"
+              token $ literal "{"
               block <- blockParser
               return $ If expr block
 
-ifElseParser :: Parser Stmt
-ifElseParser = do token $ literal "if"
-                  token $ literal "("
-                  expr <- orParser
-                  token $ literal ")"
-                  token $ literal "{"
-                  blockT <- blockParser
-                  token $ literal "}"
-                  token $ literal "else"
-                  token $ literal "{"
-                  blockEl <- blockParser
-                  token $ literal "}"
-                  return $ IfElse expr blockT blockEl
+elseParser :: Parser Stmt
+elseParser = do token $ literal "else"
+                token $ literal "{"
+                block <- blockParser
+                return $ Else block
 
 whileParser :: Parser Stmt
 whileParser = do token $ literal "while"
                  token $ literal "("
                  expr <- orParser
-                 traceShowM expr
+                 --traceShowM expr
                  token $ literal ")"
                  block <- blockParser
                  --traceShowM block
@@ -108,34 +105,38 @@ whileParser = do token $ literal "while"
 assignParser :: Parser Stmt
 assignParser = do varName <- token $ varParser
                   token $ literal "="
-                  expr <- orParser
+                  expr <- condParser
                   return $ Assign varName expr
 
 funcParser :: Parser Stmt
 funcParser = do token $ literal "def"
                 funcName <- varParser
-                traceShowM funcName
+                --traceShowM funcName
                 token $ literal "("
                 args <- varParser
-                traceShowM args
+                --traceShowM args
                 token $ literal ")"
+                token $ literal "{"
                 block <-blockParser
                 return $ Def funcName [args] block
 
--- parens :: Parser Stmt
--- parens = do token $ literal "("
---             res <- parser
---             token $ literal ")"
---             return res
+parens :: Parser Program
+parens = do token $ literal "("
+            res <- parser
+            token $ literal ")"
+            return res
 
 
 blockParser :: Parser Stmt
-blockParser = do token $ literal "{"
-                 res <- parser'
-                 token $ literal "}"
-                 return $ Block res
+blockParser = (do res <- rep line 
+                  token $ literal "}"
+                  return $ Block res) <||> statements
 
 
 
-x = "while( if(3==2) {3}) {2}"
+x = "if(x==2){x = x + 1;}else{x=x+2;}"
 y = "while(3==2){2}"
+
+funcTest = "def foo(x){if(x==2){return y;}"
+funcTest2 = "def foo(x){while(x>=2){x = x + 2;}"
+funcTest3 = "def foo(x){if(x==2||x==3) {return y;} else{return x;}"
