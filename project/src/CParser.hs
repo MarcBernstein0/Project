@@ -14,7 +14,14 @@ parser' = (do res <- orParser
               rest <- parser'
               return $ [res] ++ rest) <||> returnParser
 
+keywords = ["def","return","when","if","then","else"]
 
+
+varibleParser :: Parser Stmt
+varibleParser = do x <- token $ varParser
+                   if x `elem` keywords
+                   then failParse
+                   else return $ Var x
 
 
 
@@ -27,8 +34,8 @@ andParser = withInfix condParser [("&&", And)]
 
 
 condParser :: Parser Stmt
-condParser = withInfix addSubParser [(">=", GtEq), (">", Gt), 
-                                    ("<=", LtEq), ("<", Lt), 
+condParser = withInfix addSubParser [(">=", GtEq), (">", Gt),
+                                    ("<=", LtEq), ("<", Lt),
                                     ("!=", NEq), ("==", Eq)]
 
 addSubParser :: Parser Stmt
@@ -46,7 +53,7 @@ notParser = (do token $ literal "!"
 
 
 atoms :: Parser Stmt
-atoms = ints <||> assignParser
+atoms = ints <||> assignParser <||> varibleParser
 
 statements :: Parser Stmt
 statements = ifParser <||> ifElseParser <||> whileParser <||> funcParser
@@ -97,13 +104,13 @@ whileParser = do token $ literal "while"
                  token $ literal "}"
                  return $ While expr block
 
--- --bleh                 
+-- --bleh
 
 assignParser :: Parser Stmt
 assignParser = do varName <- token $ varParser
                   token $ literal "="
                   expr <- orParser
-                  return $ Assign varName expr 
+                  return $ Assign varName expr
 
 funcParser :: Parser Stmt
 funcParser = do token $ literal "def"
@@ -133,4 +140,3 @@ blockParser = do token $ literal "{"
 
 x = "while( if(3==2) {3}) {2}"
 y = "while(3==2){2}"
-
