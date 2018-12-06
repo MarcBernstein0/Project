@@ -6,24 +6,25 @@ import ParserMonad
 import Debug.Trace
 
 parser :: Parser Program
-parser = undefined --do code <- rep funcParser
-            --return $ P code
+parser = do code <- rep functionParser
+            return $ P code
 
 
 functionParser :: Parser Stmt
 functionParser = do token $ literal "def"
                     name <- varParser
                     token $ literal "("
-                    args <- varParser
+                    argsFunc <- args
                     token $ literal ")"
                     block <- blockParser
-                    return $ Def name [args] block
+                    return $ Def name argsFunc block
 
 
 argSingle :: Parser String
 argSingle = do arg <- varParser
-               token $ literal ","
+               token $ (literal "," <||> literal "")
                return arg
+
 
 args :: Parser [String]
 args = do arg <- rep argSingle
@@ -52,6 +53,23 @@ notParser :: Parser Expr
 notParser = (do token $ literal "!"
                 res <- notParser
                 return $ Not res) <||> atoms
+
+atoms :: Parser Expr
+atoms = ints <||> vars <||> parens
+
+ints :: Parser Expr 
+ints = do res <- intParser
+          return $ Val res
+
+vars :: Parser Expr
+vars = do var <- varParser
+          return $ Var var
+
+parens :: Parser Expr
+parens = do token $ literal "("
+            res <- orParser
+            token $ literal ")"
+            return res 
 
 
 statments :: Parser Stmt
@@ -119,22 +137,11 @@ returnParser = do token $ literal "return"
 blockParser :: Parser Stmt
 blockParser = do token $ literal "{"
                  res <- rep statments 
-                 traceShowM res
+                 --traceShowM res
                  token $ literal "}"
                  return $ Block res
 
-atoms :: Parser Expr
-atoms = ints <||> vars
 
-
-
-ints :: Parser Expr 
-ints = do res <- intParser
-          return $ Val res
-
-vars :: Parser Expr
-vars = do var <- varParser
-          return $ Var var
 
 
 
@@ -146,3 +153,4 @@ funcTest = "def foo(x){if(x==2){return y;}else{x=3;}return x;}"
 funcTest2 = "def foo(x){while(x>=2){x = x + 2;}}"
 funcTest3 = "def foo(x){if(x==2||x==3) {return y;} }"
 funcTest4 = "def foo(x){if(x==2){return y;} if(x==3){return z;}}"
+combTest = funcTest ++ funcTest2 ++ funcTest4 ++ funcTest3
