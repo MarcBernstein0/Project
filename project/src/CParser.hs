@@ -10,9 +10,10 @@ parser = undefined
 
 parser' :: Parser [Stmt]
 parser' = (do res <- orParser
+              traceShowM res
               token $ literal ";"
               rest <- parser'
-              return $ [res] ++ rest) <||> returnParser
+              return $ [res] ++ rest) <||> returnParser 
 
 keywords = ["def","return","when","if","then","else"]
 
@@ -98,10 +99,8 @@ whileParser = do token $ literal "while"
                  expr <- orParser
                  traceShowM expr
                  token $ literal ")"
-                 token $ literal "{"
-                 block <- orParser
+                 block <- blockParser
                  --traceShowM block
-                 token $ literal "}"
                  return $ While expr block
 
 -- --bleh
