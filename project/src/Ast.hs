@@ -37,6 +37,7 @@ data Expr = Val Integer
           | Not Expr 
 
           | Var String
+          | Call String [Expr]
           deriving Show
 
  

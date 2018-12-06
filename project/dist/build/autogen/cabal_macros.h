@@ -21,6 +21,27 @@
   (major1) == 0 && (major2) <  5 || \
   (major1) == 0 && (major2) == 5 && (minor) <= 7)
 
+/* package tasty-1.1.0.3 */
+#define VERSION_tasty "1.1.0.3"
+#define MIN_VERSION_tasty(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  1 || \
+  (major1) == 1 && (major2) == 1 && (minor) <= 0)
+
+/* package tasty-hunit-0.10.0.1 */
+#define VERSION_tasty_hunit "0.10.0.1"
+#define MIN_VERSION_tasty_hunit(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  10 || \
+  (major1) == 0 && (major2) == 10 && (minor) <= 0)
+
+/* package tasty-quickcheck-0.10 */
+#define VERSION_tasty_quickcheck "0.10"
+#define MIN_VERSION_tasty_quickcheck(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  10 || \
+  (major1) == 0 && (major2) == 10 && (minor) <= 0)
+
 /* tool alex-3.2.3 */
 #define TOOL_VERSION_alex "3.2.3"
 #define MIN_TOOL_VERSION_alex(major1,major2,minor) (\

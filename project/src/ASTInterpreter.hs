@@ -4,7 +4,7 @@ import Ast
 import StatefulUnsafeMonad
 
 
-data State -- TODO change to be the type of state, you have freedom for how you implement it
+data State = Map String Stmt -- TODO change to be the type of state, you have freedom for how you implement it
 
 
 

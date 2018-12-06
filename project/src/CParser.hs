@@ -14,21 +14,21 @@ functionParser :: Parser Stmt
 functionParser = do token $ literal "def"
                     name <- varParser
                     token $ literal "("
-                    argsFunc <- args
+                    argsFunc <- params
                     token $ literal ")"
                     block <- blockParser
                     return $ Def name argsFunc block
 
 
-argSingle :: Parser String
-argSingle = do arg <- varParser
-               token $ (literal "," <||> literal "")
-               return arg
+paramSingle :: Parser String
+paramSingle = do arg <- varParser
+                 token $ (literal "," <||> literal "")
+                 return arg
 
 
-args :: Parser [String]
-args = do arg <- rep argSingle
-          return arg
+params :: Parser [String]
+params = do arg <- rep paramSingle
+            return arg
 
 
 orParser :: Parser Expr
@@ -55,7 +55,7 @@ notParser = (do token $ literal "!"
                 return $ Not res) <||> atoms
 
 atoms :: Parser Expr
-atoms = ints <||> vars <||> parens
+atoms = ints <||> funcCall  <||> vars <||> parens
 
 ints :: Parser Expr 
 ints = do res <- intParser
@@ -70,6 +70,21 @@ parens = do token $ literal "("
             res <- orParser
             token $ literal ")"
             return res 
+
+funcCall :: Parser Expr
+funcCall = do name <- varParser
+              traceShowM name
+              token $ literal "("
+              args <- rep argSingle
+              token $ literal ")"
+              return $ Call name args
+
+
+argSingle :: Parser Expr
+argSingle = do arg <- orParser
+               token $ literal "," <||> literal ""
+               return arg
+
 
 
 statments :: Parser Stmt
@@ -107,9 +122,11 @@ whileParser = do token $ literal "while"
 assignParser :: Parser Stmt
 assignParser = do varName <- varParser
                   token $ literal "="
-                  var <- orParser
+                  var <- orParser 
                   token $ literal ";"
                   return $ Assign varName var 
+
+
 
 contBreakParser :: Parser Stmt
 contBreakParser = do res <- token $ (literal "continue;" <||> literal "break;")
@@ -149,7 +166,7 @@ blockParser = do token $ literal "{"
 x = "if(x==2){x = x + 1;}else{x=x+2;}"
 y = "while(3==2){2}"
 
-funcTest = "def foo(x){if(x==2){return y;}else{x=3;}return x;}"
+funcTest = "def foo(x){if(x==2){return y;}else{x=3;}return bar(x);}"
 funcTest2 = "def foo(x){while(x>=2){x = x + 2;}}"
 funcTest3 = "def foo(x){if(x==2||x==3) {return y;} }"
 funcTest4 = "def foo(x){if(x==2){return y;} if(x==3){return z;}}"

@@ -1,0 +1,8 @@
+Test suite test: RUNNING...
+allTests
+  IcInterpreterTest
+    ["z = 12"]: OK
+
+All 1 tests passed (0.00s)
+Test suite test: PASS
+Test suite logged to: dist/test/project-0.1.0.0-test.log
