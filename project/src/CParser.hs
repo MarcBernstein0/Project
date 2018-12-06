@@ -6,15 +6,19 @@ import ParserMonad
 import Debug.Trace
 
 parser :: Parser Program
-parser = undefined
+parser = do code <- rep funcParser
+            return $ P code
+
+
+
 
 
 line :: Parser Stmt
 line = (do res <- orParser
            token $ literal ";"
            return res) <||> returnParser
--- parser' = (do res <- orParser
 --               traceShowM res
+-- parser' = (do res <- orParser
 --               token $ literal ";"
 --               rest <- parser'
 --               return $ [res] ++ rest) <||> returnParser 
@@ -27,7 +31,6 @@ varibleParser = do x <- token $ varParser
                    if x `elem` keywords
                    then failParse
                    else return $ Var x
-
 
 
 
@@ -61,7 +64,7 @@ atoms :: Parser Stmt
 atoms = ints <||> assignParser <||> varibleParser
 
 statements :: Parser Stmt
-statements = ifParser <||> elseParser <||> whileParser 
+statements = ifParser <||> ifElseParser <||> whileParser <||> line
 
 ints :: Parser Stmt
 ints = do res <- token $ intParser
@@ -70,7 +73,7 @@ ints = do res <- token $ intParser
 
 returnParser :: Parser Stmt
 returnParser = do token $ literal "return "
-                  res <- orParser
+                  res <- condParser
                   token $ literal ";"
                   return $ Ret res
 
@@ -78,17 +81,25 @@ ifParser :: Parser Stmt
 ifParser = do token $ literal "if"
               token $ literal "("
               expr <- orParser
-              --traceShowM expr
+              traceShowM expr
               token $ literal ")"
-              token $ literal "{"
+             -- token $ literal "{"
               block <- blockParser
+              traceShowM block
               return $ If expr block
 
-elseParser :: Parser Stmt
-elseParser = do token $ literal "else"
-                token $ literal "{"
-                block <- blockParser
-                return $ Else block
+ifElseParser :: Parser Stmt
+ifElseParser = do token $ literal "if"
+                  token $ literal "("
+                  expr <- orParser
+                  traceShowM expr
+                  token $ literal ")"
+                  -- token $ literal "{"
+                  block <- blockParser
+                  traceShowM block
+                  token $ literal "else"
+                  blockEl <- blockParser
+                  return $ IfElse expr block blockEl
 
 whileParser :: Parser Stmt
 whileParser = do token $ literal "while"
@@ -96,6 +107,7 @@ whileParser = do token $ literal "while"
                  expr <- orParser
                  --traceShowM expr
                  token $ literal ")"
+                 -- token $ literal "{"
                  block <- blockParser
                  --traceShowM block
                  return $ While expr block
@@ -111,13 +123,13 @@ assignParser = do varName <- token $ varParser
 funcParser :: Parser Stmt
 funcParser = do token $ literal "def"
                 funcName <- varParser
-                --traceShowM funcName
+                traceShowM funcName
                 token $ literal "("
                 args <- varParser
-                --traceShowM args
+                traceShowM args
                 token $ literal ")"
-                token $ literal "{"
-                block <-blockParser
+                --token $ literal "{"
+                block <- blockParser 
                 return $ Def funcName [args] block
 
 parens :: Parser Program
@@ -128,15 +140,17 @@ parens = do token $ literal "("
 
 
 blockParser :: Parser Stmt
-blockParser = (do res <- rep line 
+blockParser = (do token $ literal "{"
+                  res <- rep statements
+                  traceShowM res
                   token $ literal "}"
-                  return $ Block res) <||> statements
+                  return $ Block res)
 
 
 
 x = "if(x==2){x = x + 1;}else{x=x+2;}"
 y = "while(3==2){2}"
 
-funcTest = "def foo(x){if(x==2){return y;}"
-funcTest2 = "def foo(x){while(x>=2){x = x + 2;}"
-funcTest3 = "def foo(x){if(x==2||x==3) {return y;} else{return x;}"
+funcTest = "def foo(x){if(x==2){return y;}}"
+funcTest2 = "def foo(x){while(x>=2){x = x + 2;}}"
+funcTest3 = "def foo(x){if(x==2||x==3) {return y;} }"

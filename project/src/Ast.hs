@@ -2,6 +2,7 @@ module Ast where
 
 
 data Program = P [Stmt]
+               deriving Show
 
 
 -- data Stmt = Def String [String] Stmt
@@ -44,7 +45,7 @@ data Stmt = Def String [String] Stmt
           | While Stmt Stmt
           | Block [Stmt]
           | If Stmt Stmt
-          | Else Stmt
+          | IfElse Stmt Stmt Stmt
           | Assign String Stmt
           | Id Stmt 
           | Ret Stmt
