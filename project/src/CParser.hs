@@ -9,19 +9,11 @@ parser :: Parser Program
 parser = do code <- rep funcParser
             return $ P code
 
-
-
-
-
 line :: Parser Stmt
 line = (do res <- orParser
            token $ literal ";"
            return res) <||> returnParser
---               traceShowM res
--- parser' = (do res <- orParser
---               token $ literal ";"
---               rest <- parser'
---               return $ [res] ++ rest) <||> returnParser 
+ 
 
 keywords = ["def","return","when","if","then","else"]
 
@@ -64,7 +56,7 @@ atoms :: Parser Stmt
 atoms = ints <||> assignParser <||> varibleParser
 
 statements :: Parser Stmt
-statements = ifParser <||> ifElseParser <||> whileParser <||> line
+statements = ifElseParser <||> ifParser <||> whileParser <||> line
 
 ints :: Parser Stmt
 ints = do res <- token $ intParser
@@ -151,6 +143,6 @@ blockParser = (do token $ literal "{"
 x = "if(x==2){x = x + 1;}else{x=x+2;}"
 y = "while(3==2){2}"
 
-funcTest = "def foo(x){if(x==2){return y;}}"
+funcTest = "def foo(x){if(x==2){return y;}else{x=3;}return x;}"
 funcTest2 = "def foo(x){while(x>=2){x = x + 2;}}"
 funcTest3 = "def foo(x){if(x==2||x==3) {return y;} }"
