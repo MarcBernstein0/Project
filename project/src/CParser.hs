@@ -76,6 +76,7 @@ funcCall = do name <- varParser
               traceShowM name
               token $ literal "("
               args <- rep argSingle
+              traceShowM args
               token $ literal ")"
               return $ Call name args
 
