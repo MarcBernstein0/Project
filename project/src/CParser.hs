@@ -73,10 +73,10 @@ parens = do token $ literal "("
 
 funcCall :: Parser Expr
 funcCall = do name <- varParser
-              traceShowM name
+              --traceShowM name
               token $ literal "("
               args <- rep argSingle
-              traceShowM args
+              --traceShowM args
               token $ literal ")"
               return $ Call name args
 
@@ -164,6 +164,9 @@ blockParser = do token $ literal "{"
 
 
 
+tst = "def main(){return 1;}"
+
+
 x = "if(x==2){x = x + 1;}else{x=x+2;}"
 y = "while(3==2){2}"
 
@@ -171,4 +174,4 @@ funcTest = "def foo(x){if(x==2){return y;}else{x=3;}return bar(x);}"
 funcTest2 = "def foo(x){while(x>=2){x = x + 2;}}"
 funcTest3 = "def foo(x){if(x==2||x==3) {return y;} }"
 funcTest4 = "def foo(x){if(x==2){return y;} if(x==3){return z;}}"
-combTest = funcTest ++ funcTest2 ++ funcTest4 ++ funcTest3
+combTest =  funcTest3 ++ tst
