@@ -87,6 +87,7 @@ evalStmt stmt g l strList = undefined
 
 
 evalExpr :: Expr -> GlobalScope -> [LocalScope] -> Unsafe Integer
+evalExpr _ _ [] = Error "No local scope"
 evalExpr (Val i) _ _ = Ok i
 evalExpr (Plus l r) global local = let x = evalExpr l global local
                                        y = evalExpr r global local
@@ -124,8 +125,68 @@ evalExpr (Eq l r) global local = let x = evalExpr l global local
                                                               y' -> if x' == y'
                                                                      then Ok 1
                                                                      else Ok 0
+evalExpr (NEq l r) global local = let x = evalExpr l global local
+                                      y = evalExpr r global local 
+                                  in case x of Error str -> Error str
+                                               Ok x' -> case y of Error str -> Error str
+                                                                  Ok y' -> if x' == y'
+                                                                            then Ok 0
+                                                                            else Ok 1
+evalExpr (Lt l r) global local = let x = evalExpr l global local
+                                     y = evalExpr r global local 
+                                 in case x of Error str -> Error str
+                                              Ok x' -> case y of Error str -> Error str
+                                                                 Ok y' -> if x' < y'
+                                                                          then Ok 1
+                                                                          else Ok 0
+evalExpr (LtEq l r) global local = let x = evalExpr l global local
+                                       y = evalExpr r global local 
+                                   in case x of Error str -> Error str
+                                                Ok x' -> case y of Error str -> Error str
+                                                                   Ok y' -> if x' <= y'
+                                                                            then Ok 1
+                                                                            else Ok 0                                                                    
+evalExpr (Gt l r) global local = let x = evalExpr l global local
+                                     y = evalExpr r global local 
+                                   in case x of Error str -> Error str
+                                                Ok x' -> case y of Error str -> Error str
+                                                                   Ok y' -> if x' > y'
+                                                                             then Ok 1
+                                                                             else Ok 0 
+evalExpr (GtEq l r) global local = let x = evalExpr l global local
+                                       y = evalExpr r global local 
+                                   in case x of Error str -> Error str
+                                                Ok x' -> case y of Error str -> Error str
+                                                                   Ok y' -> if x' > y'
+                                                                             then Ok 1
+                                                                             else Ok 0 
 
+evalExpr (And l r) global local = let x = evalExpr l global local
+                                  in case x of Error str -> Error str
+                                               Ok 0 -> Ok 0
+                                               Ok _ -> let y = evalExpr r global local
+                                                        in case y of Error str -> Error str
+                                                                     Ok 0 -> Ok 0
+                                                                     Ok _ -> Ok 1
+evalExpr (Or l r) global local = let x = evalExpr l global local 
+                                  in case x of Error str -> Error str
+                                               Ok 0 -> let y = evalExpr r global local
+                                                       in case y of Error str -> Error str
+                                                                    Ok 0 -> Ok 0
+                                                                    Ok _ -> Ok 1
+                                               Ok _ -> Ok 1
+evalExpr (Not val) global local = let x = evalExpr val global local
+                                  in case x of Error str -> Error str
+                                               Ok 0 -> Ok 1
+                                               Ok _ -> Ok 0                                              
+
+--evaluating for function and variable calls
+evalExpr (Var str) global (lsope:rest) = let x = Map.lookup str lsope
+                                         in case x of Nothing -> Error "Variable not found"
+                                                      Just x' -> Ok x'
+evalExpr (Call str args) global local = undefined --let newStack 
 
 
 
 testEvalExpr = evalExpr (Plus (Div (Val 2) (Val 2)) (Div (Val 8) (Val 0))) Map.empty [Map.empty]
+test' = evalExpr (Not (Not (Not (Not (Eq (Val 2) (Val 2)))))) Map.empty [Map.empty]

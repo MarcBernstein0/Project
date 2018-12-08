@@ -20,24 +20,24 @@ data Stmt = Def String [String] Stmt
 
 
 
-data Expr = Val Integer 
-          | Plus Expr Expr
-          | Sub Expr Expr 
-          | Mult Expr Expr 
-          | Div Expr Expr
-          | Mod Expr Expr
-          | Eq Expr Expr
-          | NEq Expr Expr
-          | Lt Expr Expr
-          | LtEq Expr Expr
-          | Gt Expr Expr
-          | GtEq Expr Expr
-          | And Expr Expr 
-          | Or Expr Expr
-          | Not Expr 
+data Expr = Val Integer --done
+          | Plus Expr Expr --done
+          | Sub Expr Expr --done
+          | Mult Expr Expr --done
+          | Div Expr Expr --done
+          | Mod Expr Expr --done
+          | Eq Expr Expr --done
+          | NEq Expr Expr --done
+          | Lt Expr Expr --done
+          | LtEq Expr Expr --done
+          | Gt Expr Expr --done
+          | GtEq Expr Expr --done
+          | And Expr Expr --done
+          | Or Expr Expr --done
+          | Not Expr --done
 
-          | Var String
-          | Call String [Expr]
+          | Var String --done
+          | Call String [Expr] 
           deriving Show
 
  
