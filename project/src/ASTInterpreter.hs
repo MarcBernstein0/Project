@@ -27,8 +27,8 @@ createGlobal [] = Map.empty
 createGlobal ((Def funcName params ast): rest) = Map.insert funcName ast (createGlobal rest)  
 
 
-eval :: Program -> Maybe [String]
-eval (P program) = eval'
+-- eval :: Program -> Maybe [String]
+-- eval (P program) = eval'
 
 --eval' :: Stmt -> 
 
@@ -58,3 +58,74 @@ eval (P program) = eval'
 -- evalExpr (Val i) globalScope localScope = Just i
 -- evalExpr (Plus l r) globalScope localScope = let x = eval l globalScope localScope
 --                                                  y = eval r globalScope localScope
+
+
+
+-- run :: Expr -> GlobalScope -> Unsafe Integer
+-- run a g = app (evalExpr a g) 
+
+
+eval :: Program -> Maybe [String]
+eval (P program) = eval' program (createGlobal program) [Map.empty] []
+
+
+eval' :: [Stmt] -> GlobalScope -> [LocalScope] -> [String] -> (Maybe [String])
+eval' program g l strList = Nothing
+
+
+
+evalStmt :: Stmt -> GlobalScope -> [LocalScope] -> [String] -> Maybe [String]
+evalStmt stmt g l strList = undefined
+
+
+-- evalExpr :: Expr -> GlobalScope -> StatefulUnsafe LocalScope Integer
+-- evalExpr (Val i) _ = return i
+
+
+
+
+
+
+evalExpr :: Expr -> GlobalScope -> [LocalScope] -> Unsafe Integer
+evalExpr (Val i) _ _ = Ok i
+evalExpr (Plus l r) global local = let x = evalExpr l global local
+                                       y = evalExpr r global local
+                                    in case x of Error str -> Error str
+                                                 Ok x' -> case y of Error str -> Error str
+                                                                    Ok y' -> Ok (x' + y')
+evalExpr (Sub l r) global local = let x = evalExpr l global local
+                                      y = evalExpr r global local
+                                    in case x of Error str -> Error str
+                                                 Ok x' -> case y of Error str -> Error str
+                                                                    Ok y' -> Ok (x' - y')
+evalExpr (Mult l r) global local = let x = evalExpr l global local
+                                       y = evalExpr r global local
+                                    in case x of Error str -> Error str
+                                                 Ok x' -> case y of Error str -> Error str
+                                                                    Ok y' -> Ok (x' * y')
+evalExpr (Div l r) global local = let x = evalExpr l global local
+                                      y = evalExpr r global local
+                                    in case x of Error str -> Error str
+                                                 Ok x' -> case y of Error str -> Error str
+                                                                    Ok y' -> if y' == 0
+                                                                             then Error "Cannot divide by 0"
+                                                                             else Ok (x' `div` y')
+evalExpr (Mod l r) global local = let x = evalExpr l global local
+                                      y = evalExpr r global local
+                                    in case x of Error str -> Error str
+                                                 Ok x' -> case y of Error str -> Error str
+                                                                    Ok y' -> if y' == 0
+                                                                             then Error "Cannot mod by 0"
+                                                                             else Ok (x' `mod` y')
+evalExpr (Eq l r) global local = let x = evalExpr l global local
+                                     y = evalExpr r global local 
+                                 in case x of Error str -> Error str
+                                              x' -> case y of Error str -> Error str
+                                                              y' -> if x' == y'
+                                                                     then Ok 1
+                                                                     else Ok 0
+
+
+
+
+testEvalExpr = evalExpr (Plus (Div (Val 2) (Val 2)) (Div (Val 8) (Val 0))) Map.empty [Map.empty]

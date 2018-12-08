@@ -6,7 +6,7 @@ data Unsafe a = Error String | Ok a deriving (Show, Eq)
 
 -- notice how we handled state in https://github.com/BU-CS320/Fall-2018/blob/master/assignments/week7/hw/src/week5/Lang4.hs
 -- we can make a monadic type to handle the details for us
-data StatefulUnsafe s a  = StatefulUnsafe (s -> (Unsafe a,s))
+data StatefulUnsafe s a  = StatefulUnsafe (s -> (Unsafe a,s)) 
 
 -- a helper function to pull out the function bit
 app :: StatefulUnsafe s a -> (s ->(Unsafe a,s))
