@@ -5,7 +5,7 @@ import StatefulUnsafeMonad
 import Data.Map as Map
 
 
-type GlobalScope = Map String Stmt -- TODO change to be the type of state, you have freedom for how you implement it
+type GlobalScope = Map String ([String],Stmt) -- TODO change to be the type of state, you have freedom for how you implement it
 type LocalScope = Map String Integer
 
 
@@ -24,7 +24,7 @@ test2 = [Def "foo" ["x"] (Block [If (Or (Eq (Var "x") (Val 2)) (Eq (Var "x") (Va
 
 createGlobal :: [Stmt] -> GlobalScope 
 createGlobal [] = Map.empty
-createGlobal ((Def funcName params ast): rest) = Map.insert funcName ast (createGlobal rest)  
+createGlobal ((Def funcName params ast): rest) = Map.insert funcName (params, ast) (createGlobal rest)  
 
 
 -- eval :: Program -> Maybe [String]
@@ -180,11 +180,20 @@ evalExpr (Not val) global local = let x = evalExpr val global local
                                                Ok 0 -> Ok 1
                                                Ok _ -> Ok 0                                              
 
---evaluating for function and variable calls
+-- --evaluating for function and variable calls
 evalExpr (Var str) global (lsope:rest) = let x = Map.lookup str lsope
                                          in case x of Nothing -> Error "Variable not found"
                                                       Just x' -> Ok x'
-evalExpr (Call str args) global local = undefined --let newStack 
+evalExpr (Call str args) global local = let newStack = Map.lookup str global 
+                                         in case newStack of 
+                                              Nothing -> Error "Function does not exist"
+                                              Just (lst, _) -> let y = zip lst args
+                                                                in Error "Test" 
+                                        --     --traceShow newStack
+                                        --     y = zip newStack args
+                                        --     --traceShow y
+                                        -- in Error "Need to finish"
+                                        --     --let newStack 
 
 
 
