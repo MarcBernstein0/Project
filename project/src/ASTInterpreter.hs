@@ -74,8 +74,9 @@ eval' program g l strList = Nothing
 
 
 
-evalStmt :: Stmt -> GlobalScope -> [LocalScope] -> [String] -> Maybe [String]
-evalStmt stmt g l strList = Nothing
+evalStmt :: Stmt -> GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, Unsafe [String])
+evalStmt (Ret expr) global local strLst = let res = evalExpr expr global local strLst
+                                            in (res, Ok strLst)
 
 
 -- evalExpr :: Expr -> GlobalScope -> StatefulUnsafe LocalScope Integer
@@ -199,7 +200,10 @@ evalExpr (Call str args) global local strLst = let newStack = Map.lookup str glo
                                                                                       then Error "One of the args given failed"
                                                                                       else let lstVarSet = zip params lst
                                                                                                newScope = createLocal lstVarSet
-                                                                                            in evalStmt ast global (newScope:local) strLst 
+                                                                                               val = evalStmt ast global (newScope:local) strLst 
+                                                                                            in case val of 
+                                                                                                (Error str, _) -> Error str
+                                                                                                (Ok x, strLst') -> Ok x
    
    
    
