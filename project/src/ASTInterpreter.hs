@@ -6,7 +6,7 @@ import Data.Map as Map
 
 
 type GlobalScope = Map String ([String],Stmt) -- TODO change to be the type of state, you have freedom for how you implement it
-type LocalScope = Map String Integer
+type LocalScope = Map String Expr
 
 
 test = [Def "main" [] (Block [Ret (Val 1)])]
@@ -187,8 +187,9 @@ evalExpr (Var str) global (lsope:rest) = let x = Map.lookup str lsope
 evalExpr (Call str args) global local = let newStack = Map.lookup str global 
                                          in case newStack of 
                                               Nothing -> Error "Function does not exist"
-                                              Just (lst, _) -> let y = zip lst args
-                                                                in Error "Test" 
+                                              Just (params, _) -> let lst = zip params args
+                                                                      newScope = createLocal lst
+                                                                   in Ok newScope 
                                         --     --traceShow newStack
                                         --     y = zip newStack args
                                         --     --traceShow y
@@ -197,5 +198,10 @@ evalExpr (Call str args) global local = let newStack = Map.lookup str global
 
 
 
-testEvalExpr = evalExpr (Plus (Div (Val 2) (Val 2)) (Div (Val 8) (Val 0))) Map.empty [Map.empty]
-test' = evalExpr (Not (Not (Not (Not (Eq (Val 2) (Val 2)))))) Map.empty [Map.empty]
+createLocal :: [(String,Expr)] -> LocalScope
+createLocal [] = Map.empty
+createLocal ((var, args):rest) = Map.insert var args (createLocal rest)
+
+
+-- testEvalExpr = evalExpr (Plus (Div (Val 2) (Val 2)) (Div (Val 8) (Val 0))) Map.empty [Map.empty]
+-- test' = evalExpr (Not (Not (Not (Not (Eq (Val 2) (Val 2)))))) Map.empty [Map.empty]
