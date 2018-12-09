@@ -94,10 +94,8 @@ whileParser = do token $ literal "while"
 assignParser :: Parser Stmt
 assignParser = do varName <- token $ varParser
                   token $ literal "="
-<<<<<<< HEAD
-                  expr <- parser
+                  expr <- parser'
                   return $ Assign varName expr 
-=======
                   expr <- orParser
                   return $ Assign varName expr 
 
@@ -118,4 +116,3 @@ blockParser = do res <- parser'
                  return $ Block [res]
 
 
->>>>>>> 27890e4e605dfa8df3e3d41fef6766256a22ff98
