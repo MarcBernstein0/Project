@@ -84,6 +84,9 @@ createGlobal ((Def funcName params ast): rest) = Map.insert funcName (params, as
 ifTest = (Block [If (NEq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])
 retTest = [Ret (Val 3)]
 
+whileTest = (Block [While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val 2))]),Ret (Var "x")])
+
+
 funcTest = (P [Def "main" [] (Block [If (Eq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])])
 
 evalStmt :: [Stmt] -> GlobalScope -> [LocalScope] -> (Unsafe Integer, [LocalScope])
@@ -93,11 +96,15 @@ evalStmt ((Block code):rest) global local = let block = evalStmt code global loc
                                                  (Error str, []) -> (Error str, [])
                                                  (i, []) -> (i, []) 
                                                  (_, stack) -> evalStmt rest global stack
--- evalStmt ((While expr code):rest) global local = let cond = evalExpr cond expr local global in
---                                                   case cond of
---                                                     Error str -> (Error ("Cond broken because " ++ str), [])
---                                                     Ok 0 -> evalStmt rest global local
---                                                     Ok _ -> let  
+evalStmt ((While expr code):rest) global local = let cond = evalExpr expr global local [] in
+                                                  case cond of
+                                                    Error str -> (Error ("Cond broken because " ++ str), [])
+                                                    Ok 0 -> evalStmt rest global local
+                                                    Ok _ -> let evaledLoop = evalStmt [code] global local in
+                                                              case evaledLoop of
+                                                                (Ok i, []) -> (Ok i, [])
+                                                                (Error str, []) -> (Error str, [])
+                                                                (_, (x:xs)) -> evalStmt ((While expr code):rest) global (x:xs)
 evalStmt ((Ret code):rest) global local = let res = evalExpr code global local []
                                             in case res of 
                                                 Error str -> (Error str, [])
@@ -112,7 +119,13 @@ evalStmt ((If expr code):rest) global local = let cond = evalExpr expr global lo
                                                                 (Error str, []) -> (Error ("if block failed "++str), [])
                                                                 (_, stack) -> evalStmt rest global local
 
-                                                                
+                                                             
+evalStmt ((Assign name expr):rest) global (cLocal:rLocal) = let exprEvaled = evalExpr expr global (cLocal:rLocal) [] in
+                                                             case exprEvaled of
+                                                              Error str -> (Error ("Assign expr failed, "++str), [])
+                                                              Ok i -> let updateLocal = Map.insert name i cLocal in
+                                                                        evalStmt rest global (cLocal:rLocal)
+
                                                                 
                                                                 
 

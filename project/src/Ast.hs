@@ -6,7 +6,7 @@ data Program = P [Stmt]
 
 
 data Stmt = Def String [String] Stmt --done
-          | While Expr Stmt
+          | While Expr Stmt --done
           | Block [Stmt] --done maybe?
           | If Expr Stmt --done
           | IfElse Expr Stmt Stmt
