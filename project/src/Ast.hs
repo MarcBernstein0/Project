@@ -5,9 +5,9 @@ data Program = P [Stmt]
                deriving Show
 
 
-data Stmt = Def String [String] Stmt
+data Stmt = Def String [String] Stmt --done
           | While Expr Stmt
-          | Block [Stmt]
+          | Block [Stmt] --done maybe?
           | If Expr Stmt
           | IfElse Expr Stmt Stmt
           | Assign String Expr
@@ -37,7 +37,7 @@ data Expr = Val Integer --done
           | Not Expr --done
 
           | Var String --done
-          | Call String [Expr] 
+          | Call String [Expr] --done
           deriving Show
 
  

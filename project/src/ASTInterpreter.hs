@@ -65,22 +65,37 @@ createGlobal ((Def funcName params ast): rest) = Map.insert funcName (params, as
 -- run a g = app (evalExpr a g) 
 
 
-eval :: Program -> Maybe [String]
-eval (P program) = eval' program (createGlobal program) [Map.empty] []
-
-
-eval' :: [Stmt] -> GlobalScope -> [LocalScope] -> [String] -> (Maybe [String])
-eval' program g l strList = Nothing
+eval :: Program -> (Unsafe Integer, Unsafe [String])
+eval (P program) = let global = createGlobal program
+                    in eval' global [Map.empty] []
 
 
 
-evalStmt :: Stmt -> GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, Unsafe [String])
-evalStmt (Ret expr) global local strLst = let res = evalExpr expr global local strLst
-                                            in (res, Ok strLst)
+--eval' program (createGlobal program) [Map.empty] []
 
 
--- evalExpr :: Expr -> GlobalScope -> StatefulUnsafe LocalScope Integer
--- evalExpr (Val i) _ = return i
+eval' :: GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, Unsafe [String])
+eval' global local strLst = let main = Map.lookup "main" global
+                              in case main of 
+                                   Nothing -> (Error "no main function", Error "no main functions")
+                                   Just (_, Block rest) -> evalStmt rest global local strLst
+
+
+
+evalStmt :: [Stmt] -> GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, Unsafe [String])
+evalStmt [] global local strLst = (Ok 0, Ok []) 
+evalStmt ((Block code):rest) global local strLst = evalStmt code global local strLst 
+-- evalStmt (Block rest) global local strLst = eval' rest global local strLst 
+-- evalStmt (Ret expr) global local strLst = let res = evalExpr expr global local strLst
+                                            --in (res, Ok strLst)
+-- evalStmt (Assign var expr) global (local:rest) strLst = let x = evalExpr expr global (local:rest) strLst
+--                                                             newScope = Map.insert var x local
+
+
+
+
+
+
 
 
 
@@ -200,7 +215,9 @@ evalExpr (Call str args) global local strLst = let newStack = Map.lookup str glo
                                                                                       then Error "One of the args given failed"
                                                                                       else let lstVarSet = zip params lst
                                                                                                newScope = createLocal lstVarSet
-                                                                                               val = evalStmt ast global (newScope:local) strLst 
+                                                                                               addedLocal = newScope:local
+                                                                                               val = evalStmt [ast] global addedLocal strLst
+
                                                                                             in case val of 
                                                                                                 (Error str, _) -> Error str
                                                                                                 (Ok x, strLst') -> Ok x
@@ -216,10 +233,6 @@ createLocal ((var, args):rest) = Map.insert var args (createLocal rest)
 
 filterList :: [Unsafe Integer] -> [Integer]
 filterList lst = [x | Ok x <- lst] 
--- filterList [] = []
--- filterList ((Ok x):xs) =  Ok $ x:(filterList xs)
--- filterList ((Error str):_) = Error $ "Cannot run because " ++ str 
-
 
 testing = evalExpr (Call "foo" [(Plus (Val 2) (Val 8))]) (createGlobal test2) [Map.empty]
 testing' = evalExpr (Call "foo" [(Div (Val 2) (Val 0))]) (createGlobal test2) [Map.empty]
