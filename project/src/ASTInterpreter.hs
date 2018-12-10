@@ -2,6 +2,7 @@ module ASTInterpreter where
 
 import Ast
 import StatefulUnsafeMonad
+import Debug.Trace
 import Data.Map as Map
 
 
@@ -65,27 +66,62 @@ createGlobal ((Def funcName params ast): rest) = Map.insert funcName (params, as
 -- run a g = app (evalExpr a g) 
 
 
-eval :: Program -> (Unsafe Integer, Unsafe [String])
-eval (P program) = let global = createGlobal program
-                    in eval' global [Map.empty] []
+-- eval :: Program -> (Unsafe Integer, Unsafe [String])
+-- eval (P program) = let global = createGlobal program
+--                     in eval' global [Map.empty] []
 
 
 
 --eval' program (createGlobal program) [Map.empty] []
 
 
-eval' :: GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, Unsafe [String])
-eval' global local strLst = let main = Map.lookup "main" global
-                              in case main of 
-                                   Nothing -> (Error "no main function", Error "no main functions")
-                                   Just (_, Block rest) -> evalStmt rest global local strLst
+-- eval' :: GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, Unsafe [String])
+-- eval' global local strLst = let main = Map.lookup "main" global
+--                               in case main of 
+--                                    Nothing -> (Error "no main function", Error "no main functions")
+--                                    Just (_, Block rest) -> evalStmt rest global local strLst
+
+ifTest = (Block [If (NEq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])
+retTest = [Ret (Val 3)]
+
+funcTest = (P [Def "main" [] (Block [If (Eq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])])
+
+evalStmt :: [Stmt] -> GlobalScope -> [LocalScope] -> (Unsafe Integer, [LocalScope])
+evalStmt [] _ _ = (Error "No return statement", [])
+evalStmt ((Block code):rest) global local = let block = evalStmt code global local
+                                             in case block of
+                                                 (Error str, []) -> (Error str, [])
+                                                 (i, []) -> (i, []) 
+                                                 (_, stack) -> evalStmt rest global stack
+-- evalStmt ((While expr code):rest) global local = let cond = evalExpr cond expr local global in
+--                                                   case cond of
+--                                                     Error str -> (Error ("Cond broken because " ++ str), [])
+--                                                     Ok 0 -> evalStmt rest global local
+--                                                     Ok _ -> let  
+evalStmt ((Ret code):rest) global local = let res = evalExpr code global local []
+                                            in case res of 
+                                                Error str -> (Error str, [])
+                                                Ok i -> (Ok i, [])
+evalStmt ((If expr code):rest) global local = let cond = evalExpr expr global local [] in 
+                                                case cond of 
+                                                    Error str -> (Error str, [])
+                                                    Ok 0 -> evalStmt rest global local
+                                                    Ok _ -> let evaled = evalStmt [code] global local in
+                                                              case evaled of
+                                                                (Ok i, []) -> (Ok i, [])
+                                                                (Error str, []) -> (Error ("if block failed "++str), [])
+                                                                (_, stack) -> evalStmt rest global local
+
+                                                                
+                                                                
+                                                                
 
 
 
-evalStmt :: [Stmt] -> GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, Unsafe [String])
-evalStmt [] global local strLst = (Ok 0, Ok []) 
-evalStmt ((Block code):rest) global local strLst = evalStmt code global local strLst 
--- evalStmt (Block rest) global local strLst = eval' rest global local strLst 
+-- evalStmt :: [Stmt] -> GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, Unsafe [String])
+-- evalStmt [] global local strLst = (Ok 0, Ok []) 
+-- evalStmt ((Block code):rest) global local strLst = evalStmt code global local strLst 
+-- -- evalStmt (Block rest) global local strLst = eval' rest global local strLst 
 -- evalStmt (Ret expr) global local strLst = let res = evalExpr expr global local strLst
                                             --in (res, Ok strLst)
 -- evalStmt (Assign var expr) global (local:rest) strLst = let x = evalExpr expr global (local:rest) strLst
@@ -200,27 +236,27 @@ evalExpr (Not val) global local strLst = let x = evalExpr val global local strLs
 evalExpr (Var str) global (lsope:rest) strLst = let x = Map.lookup str lsope 
                                                  in case x of Nothing -> Error "Variable not found"
                                                               Just x' -> Ok x'
-evalExpr (Call str args) global local strLst = let newStack = Map.lookup str global 
-                                                in case newStack of 
-                                                     Nothing -> Error "Function does not exist"
-                                                     Just (params, ast) -> if (length params) > (length args)
-                                                                          then Error "Not enough"
-                                                                          else 
-                                                                           if (length params) < (length args)
-                                                                               then Error "Too many args given"
-                                                                               else 
-                                                                                 let argsEvaled = Prelude.foldr(\expr rest -> (evalExpr expr global local strLst):rest) [] args 
-                                                                                     lst = filterList argsEvaled
-                                                                                  in if (length params) > (length lst)
-                                                                                      then Error "One of the args given failed"
-                                                                                      else let lstVarSet = zip params lst
-                                                                                               newScope = createLocal lstVarSet
-                                                                                               addedLocal = newScope:local
-                                                                                               val = evalStmt [ast] global addedLocal strLst
+-- evalExpr (Call str args) global local strLst = let newStack = Map.lookup str global 
+--                                                 in case newStack of 
+--                                                      Nothing -> Error "Function does not exist"
+--                                                      Just (params, ast) -> if (length params) > (length args)
+--                                                                           then Error "Not enough"
+--                                                                           else 
+--                                                                            if (length params) < (length args)
+--                                                                                then Error "Too many args given"
+--                                                                                else 
+--                                                                                  let argsEvaled = Prelude.foldr(\expr rest -> (evalExpr expr global local strLst):rest) [] args 
+--                                                                                      lst = filterList argsEvaled
+--                                                                                   in if (length params) > (length lst)
+--                                                                                       then Error "One of the args given failed"
+--                                                                                       else let lstVarSet = zip params lst
+--                                                                                                newScope = createLocal lstVarSet
+--                                                                                                addedLocal = newScope:local
+--                                                                                                val = evalStmt [ast] global addedLocal strLst
 
-                                                                                            in case val of 
-                                                                                                (Error str, _) -> Error str
-                                                                                                (Ok x, strLst') -> Ok x
+--                                                                                             in case val of 
+--                                                                                                 (Error str, _) -> Error str
+--                                                                                                 (Ok x, strLst') -> Ok x
    
    
    
@@ -234,8 +270,8 @@ createLocal ((var, args):rest) = Map.insert var args (createLocal rest)
 filterList :: [Unsafe Integer] -> [Integer]
 filterList lst = [x | Ok x <- lst] 
 
-testing = evalExpr (Call "foo" [(Plus (Val 2) (Val 8))]) (createGlobal test2) [Map.empty]
-testing' = evalExpr (Call "foo" [(Div (Val 2) (Val 0))]) (createGlobal test2) [Map.empty]
+-- testing = evalExpr (Call "foo" [(Plus (Val 2) (Val 8))]) (createGlobal test2) [Map.empty]
+-- testing' = evalExpr (Call "foo" [(Div (Val 2) (Val 0))]) (createGlobal test2) [Map.empty]
 
 -- testEvalExpr = evalExpr (Plus (Div (Val 2) (Val 2)) (Div (Val 8) (Val 0))) Map.empty [Map.empty]
 -- test' = evalExpr (Not (Not (Not (Not (Eq (Val 2) (Val 2)))))) Map.empty [Map.empty]

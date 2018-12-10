@@ -8,11 +8,11 @@ data Program = P [Stmt]
 data Stmt = Def String [String] Stmt --done
           | While Expr Stmt
           | Block [Stmt] --done maybe?
-          | If Expr Stmt
+          | If Expr Stmt --done
           | IfElse Expr Stmt Stmt
           | Assign String Expr
           | Line Expr 
-          | Ret Expr
+          | Ret Expr --done
           | Print Expr
           | Break
           | Continue 
