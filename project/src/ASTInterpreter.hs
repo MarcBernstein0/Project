@@ -100,21 +100,42 @@ evalStmt (funcName, Ret expr) = do res <- evalExpr (funcName, expr)
                                                                  traceShowM test
                                                                  return res
 evalStmt (funcName, (While expr code)) = do cond <- evalExpr (funcName, expr)
+                                            traceShowM cond
                                             if cond /= 0
                                                 then do evalStmt (funcName, code)
                                                         evalStmt (funcName, (While expr code))
                                                 else return 0
-evalStmt (funcName, (Assign var val)) = do x <- evalExpr (funcName, val)
-                                           traceShowM x
+evalStmt (funcName, (If expr code)) = do cond <- evalExpr (funcName, expr)
+                                         if cond /= 0
+                                             then evalStmt (funcName, code)
+                                             else return 0
+evalStmt (funcName, (IfElse expr blockT blockF)) = do cond <- evalExpr (funcName, expr)
+                                                      if cond /= 0
+                                                        then evalStmt (funcName, blockT)
+                                                        else evalStmt (funcName, blockF)
+evalStmt (funcName, (Assign var val)) = do res <- evalExpr (funcName, val)
+                                           traceShowM res
                                            state <- get 
                                            let funcState = Map.lookup funcName state in 
                                             do traceShowM funcState 
                                                case funcState of
                                                 Nothing -> err "Function does not exist"
-                                                Just (p,a,lc,strLst) -> let newLc = Map.insert var x lc 
+                                                Just (p,a,lc,strLst) -> let newLc = Map.insert var res lc 
                                                                             newState = Map.insert funcName (p, a, newLc, strLst) state
                                                                         in do put newState
-                                                                              return x
+                                                                              return res
+evalStmt (funcName, (Print expr)) = do res <- evalExpr (funcName, expr)
+                                       traceShowM res
+                                       state <- get 
+                                       let funcState = Map.lookup "main" state in 
+                                        case funcState of
+                                          Nothing -> err "Function does not exist"
+                                          Just (p,a,lc,strLst) -> let newPrint = (show res):strLst 
+                                                                      newState = Map.insert "main" (p,a,lc,newPrint) state
+                                                                  in do put newState
+                                                                        return res
+evalStmt (funcName, (Line expr)) = do res <- evalExpr (funcName, expr)
+                                      return 0
   
                                                -- let updateState = Map.insert funcName (p,a,(Map.insert var val l), strLst) state in 
                                                --                        do put updateState
@@ -267,12 +288,12 @@ evalExpr (name, (Var var)) = do cState <- get
 --                                    Nothing -> (Error "no main function", Error "no main functions")
 --                                    Just (_, Block rest) -> evalStmt rest global local strLst
 
-ifTest = (Block [If (NEq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])
+ifTest = (Block [Assign "x" (Val 2), If (NEq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])
 retTest = [Ret (Val 3)]
 
-whileTest = [Block [Assign "x" (Val 10), While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val 2))]),Ret (Var "x")]]
+whileTest = [Block [Assign "x" (Val 10), While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val 2))]),Print (Var "x"), Ret (Var "x")]]
 
-ifelseTest = [IfElse (Eq (Var "x") (Val 2)) (Block [Ret (Plus (Var "x") (Var "x"))]) (Block [Ret (Var "x")])]
+ifelseTest = (Block [Assign "x" (Val 200), IfElse (Eq (Var "x") (Val 2)) (Block [Ret (Plus (Var "x") (Var "x"))]) (Block [Ret (Var "x")])])
 
 printTest = [Print (Plus (Var "x") (Val 2))]
 
