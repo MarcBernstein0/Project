@@ -125,7 +125,7 @@ evalStmt ((Assign name expr):rest) global (cLocal:rLocal) = let exprEvaled = eva
                                                              case exprEvaled of
                                                               Error str -> (Error ("Assign expr failed, "++str), [])
                                                               Ok i -> let updateLocal = Map.insert name i cLocal in
-                                                                        evalStmt rest global (cLocal:rLocal)
+                                                                        (Ok 0, (updateLocal:rLocal))
 
                                                                 
                                                                 
