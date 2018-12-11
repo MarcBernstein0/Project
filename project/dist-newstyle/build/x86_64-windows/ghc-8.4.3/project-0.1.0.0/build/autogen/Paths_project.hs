@@ -29,12 +29,12 @@ version :: Version
 version = Version [0,1,0,0] []
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
 
-bindir     = "C:\\Users\\Benjamin\\AppData\\Roaming\\cabal\\bin"
-libdir     = "C:\\Users\\Benjamin\\AppData\\Roaming\\cabal\\x86_64-windows-ghc-8.4.3\\project-0.1.0.0-inplace"
-dynlibdir  = "C:\\Users\\Benjamin\\AppData\\Roaming\\cabal\\x86_64-windows-ghc-8.4.3"
-datadir    = "C:\\Users\\Benjamin\\AppData\\Roaming\\cabal\\x86_64-windows-ghc-8.4.3\\project-0.1.0.0"
-libexecdir = "C:\\Users\\Benjamin\\AppData\\Roaming\\cabal\\project-0.1.0.0-inplace\\x86_64-windows-ghc-8.4.3\\project-0.1.0.0"
-sysconfdir = "C:\\Users\\Benjamin\\AppData\\Roaming\\cabal\\etc"
+bindir     = "C:\\Users\\bdcoo\\AppData\\Roaming\\cabal\\bin"
+libdir     = "C:\\Users\\bdcoo\\AppData\\Roaming\\cabal\\x86_64-windows-ghc-8.4.3\\project-0.1.0.0-inplace"
+dynlibdir  = "C:\\Users\\bdcoo\\AppData\\Roaming\\cabal\\x86_64-windows-ghc-8.4.3"
+datadir    = "C:\\Users\\bdcoo\\AppData\\Roaming\\cabal\\x86_64-windows-ghc-8.4.3\\project-0.1.0.0"
+libexecdir = "C:\\Users\\bdcoo\\AppData\\Roaming\\cabal\\project-0.1.0.0-inplace\\x86_64-windows-ghc-8.4.3\\project-0.1.0.0"
+sysconfdir = "C:\\Users\\bdcoo\\AppData\\Roaming\\cabal\\etc"
 
 getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir, getSysconfDir :: IO FilePath
 getBinDir = catchIO (getEnv "project_bindir") (\_ -> return bindir)
