@@ -6,113 +6,176 @@ import ParserMonad
 import Debug.Trace
 
 parser :: Parser Program
-parser = undefined
-
-parser' :: Parser Stmt
-parser' = undefined
+parser = do code <- rep functionParser
+            return $ P code
 
 
+functionParser :: Parser Stmt
+functionParser = do token $ literal "def"
+                    name <- varParser
+                    token $ literal "("
+                    argsFunc <- params
+                    token $ literal ")"
+                    block <- blockParser
+                    return $ Def name argsFunc block
 
 
+paramSingle :: Parser String
+paramSingle = do arg <- varParser
+                 token $ (literal "," <||> literal "")
+                 return arg
 
 
+params :: Parser [String]
+params = do arg <- rep paramSingle
+            return arg
 
-orParser :: Parser Stmt
+
+orParser :: Parser Expr
 orParser = withInfix andParser [("||", Or)]
 
-andParser :: Parser Stmt
+andParser :: Parser Expr
 andParser = withInfix condParser [("&&", And)]
 
 
-condParser :: Parser Stmt
-condParser = withInfix addSubParser [(">=", GtEq), (">", Gt), 
-                                    ("<=", LtEq), ("<", Lt), 
+condParser :: Parser Expr
+condParser = withInfix addSubParser [(">=", GtEq), (">", Gt),
+                                    ("<=", LtEq), ("<", Lt),
                                     ("!=", NEq), ("==", Eq)]
 
-addSubParser :: Parser Stmt
+addSubParser :: Parser Expr
 addSubParser = withInfix multDivModParser [("+", Plus), ("-", Sub)]
 
-multDivModParser :: Parser Stmt
+multDivModParser :: Parser Expr
 multDivModParser = withInfix notParser [("*",Mult), ("/", Div), ("%",Mod)]
 
-notParser :: Parser Stmt
+notParser :: Parser Expr
 notParser = (do token $ literal "!"
                 res <- notParser
-                --traceShowM res
                 return $ Not res) <||> atoms
 
+atoms :: Parser Expr
+atoms = ints <||> funcCall  <||> vars <||> parens
 
-
-atoms :: Parser Stmt
-atoms = ints <||> assignParser
-
-
-ints :: Parser Stmt
-ints = do res <- token $ intParser
+ints :: Parser Expr 
+ints = do res <- intParser
           return $ Val res
 
+vars :: Parser Expr
+vars = do var <- varParser
+          return $ Var var
+
+parens :: Parser Expr
+parens = do token $ literal "("
+            res <- orParser
+            token $ literal ")"
+            return res 
+
+funcCall :: Parser Expr
+funcCall = do name <- varParser
+              --traceShowM name
+              token $ literal "("
+              args <- rep argSingle
+              --traceShowM args
+              token $ literal ")"
+              return $ Call name args
+
+
+argSingle :: Parser Expr
+argSingle = do arg <- orParser
+               token $ literal "," <||> literal ""
+               return arg
+
+
+
+statments :: Parser Stmt
+statments = ifElseParser <||> ifParser <||> whileParser <||> assignParser <||> contBreakParser <||> printParser <||> line <||> returnParser
+ 
 
 ifParser :: Parser Stmt
 ifParser = do token $ literal "if"
               token $ literal "("
               expr <- orParser
-              --traceShowM expr
               token $ literal ")"
-              token $ literal "{"
-              block <- orParser
-              token $ literal "}"
+              block <- blockParser 
               return $ If expr block
+
 
 ifElseParser :: Parser Stmt
 ifElseParser = do token $ literal "if"
                   token $ literal "("
                   expr <- orParser
                   token $ literal ")"
-                  token $ literal "{"
-                  blockT <- blockParser
-                  token $ literal "}"
+                  block <- blockParser
                   token $ literal "else"
-                  token $ literal "{"
-                  blockEl <- blockParser
-                  token $ literal "}"
-                  return $ IfElse expr blockT blockEl
+                  blockF <- blockParser 
+                  return $ IfElse expr block blockF
+
 
 whileParser :: Parser Stmt
 whileParser = do token $ literal "while"
                  token $ literal "("
-                 expr <- orParser
-                 traceShowM expr
+                 expr <- orParser 
                  token $ literal ")"
-                 token $ literal "{"
                  block <- blockParser
-                 --traceShowM block
-                 token $ literal "}"
                  return $ While expr block
 
---bleh                 
-
 assignParser :: Parser Stmt
-assignParser = do varName <- token $ varParser
+assignParser = do varName <- varParser
                   token $ literal "="
                   expr <- parser'
                   return $ Assign varName expr 
                   expr <- orParser
                   return $ Assign varName expr 
+                  var <- orParser 
+                  token $ literal ";"
+                  return $ Assign varName var 
 
-funcParser :: Parser Stmt
-funcParser = do token $ literal "Def"
-                funcName <- varParser
-                token $ literal "("
-                args <- varParser
-                token $ literal ")"
-                token $ literal "{"
-                block <-blockParser
-                token $ literal "}"
-                return $ Def funcName [args] block
+
+
+contBreakParser :: Parser Stmt
+contBreakParser = do res <- token $ (literal "continue;" <||> literal "break;")
+                     if res == "continue;"
+                      then return Continue
+                      else return Break
+
+printParser :: Parser Stmt
+printParser = do token $ literal "print "
+                 res <- orParser
+                 return $ Print res
+
+line :: Parser Stmt
+line = do res <-  orParser
+          token $ literal ";"
+          return $ Line res
+
+returnParser :: Parser Stmt
+returnParser = do token $ literal "return"
+                  res <- orParser
+                  token $ literal ";"
+                  return $ Ret res
 
 
 blockParser :: Parser Stmt
-blockParser = do res <- parser'
-                 return $ Block [res]
+blockParser = do token $ literal "{"
+                 res <- rep statments 
+                 --traceShowM res
+                 token $ literal "}"
+                 return $ Block res
 
 
+
+
+
+
+tst = "def main(){return 1;}"
+
+
+x = "if(x==2){x = x + 1;}else{x=x+2;}"
+y = "while(3==2){2}"
+
+funcTest = "def foo(x){if(x==2){return y;}else{x=3;}return bar(x);}"
+funcTest2 = "def foo(x){while(x>=2){x = x + 2;}}"
+funcTest3 = "def foo(x){if(x==2||x==3) {return y;} }"
+funcTest4 = "def foo(x){if(x==2){return y;} if(x==3){return z;}}"
+combTest =  funcTest3 ++ tst
