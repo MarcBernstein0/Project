@@ -5,4 +5,10 @@ import ICInterpreter
 
 
 compile :: Program -> IC_Program
-compile = undefined
+compile (P (head:rest)) = [compileStmt head]++ compile (P rest)
+
+compileStmt :: Stmt -> IC_Instruction
+compileStmt = undefined
+
+compileExpr :: Expr -> IC_Instruction
+compileExpr = undefined

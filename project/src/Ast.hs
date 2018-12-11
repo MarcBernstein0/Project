@@ -42,21 +42,21 @@ data Expr = Val Integer --done
 
  
 prettyShow :: Program -> String
-prettyShow = undefined
+prettyShow (P (head:rest)) = prettyStmt head ++ "\n" ++ (prettyShow (P rest))
 
 
 prettyStmt :: Stmt -> String
-prettyStmt (Def name vars body) = undefined
-prettyStmt (While cond body) = undefined
-prettyStmt (Block body) = undefined
-prettyStmt (If cond body) = undefined
-prettyStmt (IfElse cond true false) = undefined
-prettyStmt (Assign var body) = undefined
+prettyStmt (Def name (x:xs) body) = undefined
+prettyStmt (While cond body) = "While " ++ showPar (prettyExpr cond) ++ "\n\t" ++ prettyStmt body
+prettyStmt (Block (first:rest)) = undefined
+prettyStmt (If cond body) = "If" ++ showPar (prettyExpr cond) ++ "\n\t" ++ prettyStmt body 
+prettyStmt (IfElse cond true false) = "If" ++ showPar (prettyExpr cond) ++ "\n\t" ++ prettyStmt true ++ "\nElse\n\t" ++ prettyStmt false 
+prettyStmt (Assign var body) = var ++ "=" ++ prettyExpr body ++ ";"
 prettyStmt (Line body) = undefined
-prettyStmt (Ret body) = undefined
-prettyStmt (Print body) = undefined
-prettyStmt (Break) = undefined
-prettyStmt (Continue) = undefined
+prettyStmt (Ret body) = "return " ++ prettyExpr body
+prettyStmt (Print body) = "print(" ++ prettyExpr body ++")"
+prettyStmt (Break) = "Break"
+prettyStmt (Continue) = "Continue"
 
 prettyExpr :: Expr -> String
 prettyExpr (Val i) = show i
