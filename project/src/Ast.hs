@@ -5,16 +5,16 @@ data Program = P [Stmt]
                deriving Show
 
 
-data Stmt = Def String [String] Stmt
-          | While Expr Stmt
-          | Block [Stmt]
-          | If Expr Stmt
-          | IfElse Expr Stmt Stmt
-          | Assign String Expr
-          | Line Expr 
-          | Ret Expr
-          | Print Expr
-          | Break
+data Stmt = Def String [String] Stmt --done
+          | While Expr Stmt --done 
+          | Block [Stmt] --done 
+          | If Expr Stmt --done
+          | IfElse Expr Stmt Stmt --done
+          | Assign String Expr --done
+          | Line Expr --done
+          | Ret Expr --done
+          | Print Expr --done 
+          | Break 
           | Continue 
           deriving Show
 
@@ -37,7 +37,7 @@ data Expr = Val Integer --done
           | Not Expr --done
 
           | Var String --done
-          | Call String [Expr] 
+          | Call String [Expr] --done
           deriving Show
 
  

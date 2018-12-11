@@ -12,6 +12,9 @@ data StatefulUnsafe s a  = StatefulUnsafe (s -> (Unsafe a,s))
 app :: StatefulUnsafe s a -> (s ->(Unsafe a,s))
 app (StatefulUnsafe stateful) = stateful
 
+r :: (StatefulUnsafe s a) -> s -> (Unsafe a, s)
+r (StatefulUnsafe state) s = state s 
+
 
 -- a way to easily return an error (for instance in do notation)
 err :: String -> StatefulUnsafe e a
