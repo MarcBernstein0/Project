@@ -5,6 +5,10 @@ import ParserMonad
 
 import Debug.Trace
 
+
+
+test = "def main(){x=0;while(1){x=x+1; if(x==10){break;}}print x; return x;}"
+
 parser :: Parser Program
 parser = do code <- rep functionParser
             return $ P code
@@ -13,8 +17,10 @@ parser = do code <- rep functionParser
 functionParser :: Parser Stmt
 functionParser = do token $ literal "def"
                     name <- varParser
+                    --traceShowM name
                     token $ literal "("
                     argsFunc <- params
+                    --traceShowM argsFunc
                     token $ literal ")"
                     block <- blockParser
                     return $ Def name argsFunc block
@@ -63,7 +69,9 @@ ints = do res <- intParser
 
 vars :: Parser Expr
 vars = do var <- varParser
-          return $ Var var
+          if var `elem` keyWords
+            then failParse
+            else return $ Var var
 
 parens :: Parser Expr
 parens = do token $ literal "("
@@ -89,7 +97,7 @@ argSingle = do arg <- orParser
 
 
 statments :: Parser Stmt
-statments = ifElseParser <||> ifParser <||> whileParser <||> assignParser <||> contBreakParser <||> printParser <||> line <||> returnParser
+statments = ifElseParser <||> ifParser <||> whileParser <||> printParser <||> contBreakParser <||>assignParser <||> line <||> returnParser
  
 
 ifParser :: Parser Stmt
@@ -116,16 +124,25 @@ whileParser :: Parser Stmt
 whileParser = do token $ literal "while"
                  token $ literal "("
                  expr <- orParser 
+                 traceShowM expr
                  token $ literal ")"
                  block <- blockParser
                  return $ While expr block
 
+
+keyWords = ["continue", "break", "print", "while", "return", "if", "else", "def"]
+
+
 assignParser :: Parser Stmt
 assignParser = do varName <- varParser
-                  token $ literal "="
-                  var <- orParser 
-                  token $ literal ";"
-                  return $ Assign varName var 
+                  --traceShowM $ "Variable name " ++ varName
+                  if varName `elem` keyWords
+                    then failParse
+                    else do token $ literal "="
+                            var <- orParser 
+                            --traceShowM var
+                            token $ literal ";"
+                            return $ Assign varName var 
 
 
 
@@ -138,6 +155,7 @@ contBreakParser = do res <- token $ (literal "continue;" <||> literal "break;")
 printParser :: Parser Stmt
 printParser = do token $ literal "print "
                  res <- orParser
+                 token $ literal ";"
                  return $ Print res
 
 line :: Parser Stmt

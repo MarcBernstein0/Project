@@ -88,50 +88,79 @@ whileTest = [While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val
 
 ifelseTest = [IfElse (Eq (Var "x") (Val 2)) (Block [Ret (Plus (Var "x") (Var "x"))]) (Block [Ret (Var "x")])]
 
+printTest = [Print (Plus (Var "x") (Val 2))]
+
+breakTest = (Block [While (Val 1) (Block [Assign "x" (Plus (Var "x") (Val 1)),If (Eq (Var "x") (Val 10)) (Block [Break])]),Print (Var "x")])
+
+breakTest1 = [Block [Assign "x" (Val 0),If (Eq (Var "x") (Val 0)) (Block [Print (Var "x"), Break]),Print (Var "x")]]
+
+testLocal = [createLocal [("x", 0)]]
+
 
 funcTest = (P [Def "main" [] (Block [If (Eq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])])
 
-evalStmt :: [Stmt] -> GlobalScope -> [LocalScope] -> (Unsafe Integer, [LocalScope])
-evalStmt [] _ local = (Ok 0, local)
-evalStmt ((Block code):rest) global local = let block = evalStmt code global local
+
+
+
+
+
+
+evalStmt :: [Stmt] -> GlobalScope -> [LocalScope] -> [String] -> (Unsafe Integer, [LocalScope], [String])
+evalStmt [] _ local print = (Ok 0, local, print)
+evalStmt ((Block code):rest) global local print = let block = evalStmt code global local print
                                              in case block of
-                                                 (Error str, _) -> (Error str, [])
-                                                 (Ok i, []) -> (Ok i, []) 
-                                                 (Ok _, stack) -> evalStmt rest global stack
-evalStmt ((While expr code):rest) global local = let cond = evalExpr expr global local [] in
-                                                  case cond of
-                                                    Error str -> (Error ("Cond broken because " ++ str), [])
-                                                    Ok 0 -> evalStmt rest global local
-                                                    Ok _ -> let evaledLoop = evalStmt [code] global local in
-                                                              case evaledLoop of
-                                                                (Ok i, []) -> (Ok i, [])
-                                                                (Ok _, (x:xs)) -> evalStmt ((While expr code):rest) global (x:xs)
-                                                                (Error str, _) -> (Error str, [])
-evalStmt ((Ret code):rest) global local = let res = evalExpr code global local []
-                                            in case res of 
-                                                Error str -> (Error str, [])
-                                                Ok i -> (Ok i, [])
-evalStmt ((If expr code):rest) global local = let cond = evalExpr expr global local [] in 
-                                                case cond of 
-                                                    Error str -> (Error str, [])
-                                                    Ok 0 -> evalStmt rest global local
-                                                    Ok _ -> let evaled = evalStmt [code] global local in
-                                                              case evaled of
-                                                                (Ok i, []) -> (Ok i, [])
-                                                                (Ok _, stack) -> evalStmt rest global local
-                                                                (Error str, _) -> (Error ("if block failed "++str), [])
-evalStmt ((IfElse expr blockT blockF):rest) global local = let cond = evalExpr expr global local [] in
-                                                            case cond of
-                                                                Error str -> (Error str, [])
-                                                                Ok 0 -> evalStmt [blockF] global local 
-                                                                Ok _ -> evalStmt [blockT] global local
+                                                 (Error str, _, print') -> (Error str, [], print')
+                                                 (Ok i, [], print') -> (Ok i, [], print') 
+                                                 (Ok _, stack, print') -> evalStmt rest global stack print'
+evalStmt ((While expr code):rest) global local print = let cond = evalExpr expr global local [] in
+                                                        case cond of
+                                                          Error str -> (Error ("Cond broken because " ++ str), [], print)
+                                                          Ok 0 -> evalStmt rest global local print
+                                                          Ok _ -> let evaledLoop = evalStmt [code] global local print in
+                                                                    case evaledLoop of
+                                                                      (Ok i, [], print') -> (Ok i, [], print')
+                                                                      (Ok _, (x:xs), print') -> evalStmt ((While expr code):rest) global (x:xs) print'
+                                                                      (Error str, local', print') -> if str == "Break"
+                                                                                                      then evalStmt rest global local' print'
+                                                                                                      else (Error str, [], print')
+
+
+evalStmt ((Ret code):rest) global local print = let res = evalExpr code global local []
+                                                 in case res of 
+                                                     Error str -> (Error str, [], print)
+                                                     Ok i -> (Ok i, [], print)
+evalStmt ((If expr code):rest) global local print = let cond = evalExpr expr global local [] in 
+                                                     case cond of 
+                                                         Error str -> (Error str, [], print)
+                                                         Ok 0 -> evalStmt rest global local print
+                                                         Ok _ -> let evaled = evalStmt [code] global local print in
+                                                                   case evaled of
+                                                                     (Ok i, [], newPrint) -> (Ok i, [], newPrint)
+                                                                     (Error str, local', newPrint) -> if str == "Break" 
+                                                                                                        then evalStmt rest global local' newPrint
+                                                                                                        else (Error ("if block failed "++str), [], newPrint)
+                                                                     (Ok _, stack, newPrint) -> evalStmt rest global local newPrint
+evalStmt ((IfElse expr blockT blockF):rest) global local print = let cond = evalExpr expr global local [] in
+                                                                  case cond of
+                                                                      Error str -> (Error str, [], print)
+                                                                      Ok 0 -> evalStmt [blockF] global local print
+                                                                      Ok _ -> evalStmt [blockT] global local print
 
                                                              
-evalStmt ((Assign name expr):rest) global (cLocal:rLocal) = let exprEvaled = evalExpr expr global (cLocal:rLocal) [] in
-                                                             case exprEvaled of
-                                                              Error str -> (Error ("Assign expr failed, "++str), [])
-                                                              Ok i -> let updateLocal = Map.insert name i cLocal in
-                                                                        (Ok 0, (updateLocal:rLocal))
+evalStmt ((Assign name expr):rest) global (cLocal:rLocal) print = let exprEvaled = evalExpr expr global (cLocal:rLocal) [] in
+                                                                   case exprEvaled of
+                                                                    Error str -> (Error ("Assign expr failed, "++str), [], print)
+                                                                    Ok i -> let updateLocal = Map.insert name i cLocal in
+                                                                              (Ok 0, (updateLocal:rLocal), print)
+evalStmt ((Line expr):rest) global local print = evalStmt rest global local print
+evalStmt ((Print expr):rest) global local print = let evalingPrint = evalExpr expr global local [] 
+                                                   in case evalingPrint of
+                                                    Error str -> (Error str, [], print)
+                                                    Ok i -> let newString = show i in
+                                                             (Ok 0, local, newString:print)
+evalStmt ((Break):rest) global local print = (Error "Break", local, print) 
+
+
 
                                                                 
                                                                 

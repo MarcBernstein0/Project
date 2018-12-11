@@ -9,12 +9,12 @@ data Stmt = Def String [String] Stmt --done
           | While Expr Stmt --done 
           | Block [Stmt] --done 
           | If Expr Stmt --done
-          | IfElse Expr Stmt Stmt
-          | Assign String Expr
-          | Line Expr 
+          | IfElse Expr Stmt Stmt --done
+          | Assign String Expr --done
+          | Line Expr --done
           | Ret Expr --done
-          | Print Expr
-          | Break
+          | Print Expr --done 
+          | Break 
           | Continue 
           deriving Show
 
