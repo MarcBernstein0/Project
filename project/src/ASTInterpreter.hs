@@ -86,6 +86,8 @@ retTest = [Ret (Val 3)]
 
 whileTest = [While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val 2))]),Ret (Var "x")]
 
+ifelseTest = [IfElse (Eq (Var "x") (Val 2)) (Block [Ret (Plus (Var "x") (Var "x"))]) (Block [Ret (Var "x")])]
+
 
 funcTest = (P [Def "main" [] (Block [If (Eq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])])
 
@@ -118,7 +120,11 @@ evalStmt ((If expr code):rest) global local = let cond = evalExpr expr global lo
                                                                 (Ok i, []) -> (Ok i, [])
                                                                 (Ok _, stack) -> evalStmt rest global local
                                                                 (Error str, _) -> (Error ("if block failed "++str), [])
-                                                                
+evalStmt ((IfElse expr blockT blockF):rest) global local = let cond = evalExpr expr global local [] in
+                                                            case cond of
+                                                                Error str -> (Error str, [])
+                                                                Ok 0 -> evalStmt [blockF] global local 
+                                                                Ok _ -> evalStmt [blockT] global local
 
                                                              
 evalStmt ((Assign name expr):rest) global (cLocal:rLocal) = let exprEvaled = evalExpr expr global (cLocal:rLocal) [] in
