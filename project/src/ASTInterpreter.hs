@@ -9,6 +9,8 @@ import Data.Map as Map
 type GlobalScope = Map String ([String],Stmt) -- TODO change to be the type of state, you have freedom for how you implement it
 type LocalScope = Map String Integer
 
+type State = Map String ([String], Stmt, LocalScope, [String])
+
 
 test = [Def "main" [] (Block [Ret (Val 1)])]
 test2 = [Def "foo" ["x"] (Block [If (Or (Eq (Var "x") (Val 2)) (Eq (Var "x") (Val 3))) (Block [Ret (Var "y")])]),Def "main" [] (Block [Ret (Val 1)])]
@@ -26,6 +28,190 @@ test2 = [Def "foo" ["x"] (Block [If (Or (Eq (Var "x") (Val 2)) (Eq (Var "x") (Va
 createGlobal :: [Stmt] -> GlobalScope 
 createGlobal [] = Map.empty
 createGlobal ((Def funcName params ast): rest) = Map.insert funcName (params, ast) (createGlobal rest)  
+
+
+createState :: [Stmt] -> State
+createState [] = Map.empty
+createState ((Def funcName params ast):rest) = Map.insert funcName (params, ast, Map.empty, []) (createState rest)
+
+
+testGlob = createState test
+
+
+createLocal :: [(String,Integer)] -> LocalScope
+createLocal [] = Map.empty
+createLocal ((var, args):rest) = Map.insert var args (createLocal rest)
+
+filterList :: [Unsafe Integer] -> [Integer]
+filterList lst = [x | Ok x <- lst] 
+
+-- testing = evalExpr (Call "foo" [(Plus (Val 2) (Val 8))]) (createGlobal test2) [Map.empty]
+-- testing' = evalExpr (Call "foo" [(Div (Val 2) (Val 0))]) (createGlobal test2) [Map.empty]
+
+-- testEvalExpr = evalExpr (Plus (Div (Val 2) (Val 2)) (Div (Val 8) (Val 0))) Map.empty [Map.empty]
+-- test' = evalExpr (Not (Not (Not (Not (Eq (Val 2) (Val 2)))))) Map.empty [Map.empty]
+
+getLocalScope :: String -> State -> Maybe LocalScope
+getLocalScope funcName state = let local = Map.lookup funcName state in
+                                case local of
+                                    Nothing -> Nothing
+                                    Just (_,_,lc,_) -> Just lc
+
+
+evalProgram :: (String, [Stmt]) -> StatefulUnsafe State Integer
+evalProgram (funcName, []) = return 0
+evalProgram (funcName, (head:tail)) = do res1 <- evalStmt (funcName, head)
+                                         state <- get 
+                                         let funcState = Map.lookup funcName state in 
+                                          case funcState of
+                                            Nothing -> err "Function does not exist"
+                                            Just (_,_,l,_) -> if Map.size l == 0
+                                                                then return res1
+                                                                else evalProgram (funcName, tail)
+-- evalStmt (funcName, []) = return 0
+-- evalStmt (funcName, (Block code):rest) = do evalStmt (funcName, code)
+--                                             evalStmt (funcName, rest)
+-- evalStmt (funcName, (Ret expr):rest) = do res <- evalExpr (funcName, expr)
+--                                           return res
+-- evalStmt ((funcName, ((Print expr):rest))) = do x <- evalExpr (funcName, expr)
+--                                                 state <- get
+--                                                 let funcState = Map.lookup funcName state in 
+--                                                     case funcState of
+--                                                         Nothing -> err "Function does not exist"
+--                                                         Just (p,a,l,strLst) -> let newPrint = show x
+--                                                                                    newPrintLst = newPrint:strLst
+--                                                                                    newState = Map.insert funcName (p,a,l,newPrintLst) state
+--                                                                                 in do put newState
+--                                                                                       return 0
+
+
+
+evalStmt :: (String, Stmt) -> StatefulUnsafe State Integer
+evalStmt (funcName, (Block code)) = do res <- evalProgram (funcName, code)
+                                       return res
+evalStmt (funcName, Ret expr) = do res <- evalExpr (funcName, expr)
+                                   state <- get 
+                                   let funcState = Map.lookup funcName state in 
+                                    case funcState of
+                                      Nothing -> err "Function does not exist"
+                                      Just (p,a,_,strLst) -> let updateState = Map.insert funcName (p,a,Map.empty,strLst) state in 
+                                                              do put updateState
+                                                                 test <- get 
+                                                                 traceShowM test
+                                                                 return res
+evalStmt (funcName, (While expr code)) = do cond <- evalExpr (funcName, expr)
+                                            if cond /= 0
+                                                then do evalStmt (funcName, code)
+                                                        evalStmt (funcName, (While expr code))
+                                                else return 0
+evalStmt (funcName, (Assign var val)) = do x <- evalExpr (funcName, val)
+                                           traceShowM x
+                                           state <- get 
+                                           let funcState = Map.lookup funcName state in 
+                                            do traceShowM funcState 
+                                               case funcState of
+                                                Nothing -> err "Function does not exist"
+                                                Just (p,a,lc,strLst) -> let newLc = Map.insert var x lc 
+                                                                            newState = Map.insert funcName (p, a, newLc, strLst) state
+                                                                        in do put newState
+                                                                              return x
+  
+                                               -- let updateState = Map.insert funcName (p,a,(Map.insert var val l), strLst) state in 
+                                               --                        do put updateState
+                                               --                           traceShowM updateState
+                                               --                           return x 
+
+
+                                                
+                                         
+
+run' :: (String, [Stmt]) -> (Unsafe Integer, State)
+run' (str, a) = r (evalProgram (str, a)) (createState test)
+
+run :: (String, Expr) -> (Unsafe Integer, State)
+run (str, a) = r (evalExpr (str, a)) (createState test)
+
+evalExpr :: (String, Expr) -> StatefulUnsafe State Integer
+evalExpr (name, (Val i)) = return i
+evalExpr (name, (Plus l r)) = do x <- evalExpr (name, l)
+                                 y <- evalExpr (name, r)
+                                 return $ x + y
+evalExpr (name, (Sub l r)) = do x <- evalExpr (name, l)
+                                y <- evalExpr (name, r)
+                                return $ x - y
+evalExpr (name, (Mult l r)) = do x <- evalExpr (name, l)
+                                 y <- evalExpr (name, r)
+                                 return $ x * y
+evalExpr (name, (Div l r)) = do x <- evalExpr (name, l)
+                                y <- evalExpr (name, r)
+                                if y == 0
+                                    then err "Cannot divide by 0"
+                                    else return $ x `div` y
+evalExpr (name, (Mod l r)) = do x <- evalExpr (name, l)
+                                y <- evalExpr (name, r)
+                                if y == 0
+                                    then err "Cannot divide by 0"
+                                    else return $ x `mod` y
+evalExpr (name, (Eq l r)) = do x <- evalExpr (name, l)
+                               y <- evalExpr (name, r)
+                               if x == y
+                                then return 1
+                                else return 0
+evalExpr (name, (NEq l r)) = do x <- evalExpr (name, l)
+                                y <- evalExpr (name, r)
+                                if x == y
+                                 then return 0
+                                 else return 1
+evalExpr (name, (Lt l r)) = do x <- evalExpr (name, l) 
+                               y <- evalExpr (name, r)
+                               if x < y
+                                then return 1
+                                else return 0
+evalExpr (name, (LtEq l r)) = do x <- evalExpr (name, l) 
+                                 y <- evalExpr (name, r)
+                                 if x <= y
+                                  then return 1
+                                  else return 0   
+evalExpr (name, (Gt l r)) = do x <- evalExpr (name, l) 
+                               y <- evalExpr (name, r)
+                               if x > y
+                                then return 1
+                                else return 0
+evalExpr (name, (GtEq l r)) = do x <- evalExpr (name, l) 
+                                 y <- evalExpr (name, r)
+                                 if x >= y
+                                  then return 1
+                                  else return 0
+evalExpr (name, (And l r)) = do x <- evalExpr (name, l)
+                                case x of
+                                    0 -> return 0
+                                    _ -> do y <- evalExpr (name, r)
+                                            case y of 
+                                                0 -> return 0
+                                                _ -> return 1
+evalExpr (name, (Or l r)) = do x <- evalExpr (name, l) 
+                               case x of
+                                0 -> do y <- evalExpr (name, r) 
+                                        case y of
+                                          0 -> return 0
+                                          _ -> return 1
+                                _ -> return 1
+evalExpr (name, (Not expr)) = do x <- evalExpr (name, expr)
+                                 case x of
+                                    0 -> return 1
+                                    _ -> return 0
+evalExpr (name, (Var var)) = do cState <- get
+                                traceShowM cState
+                                let local = getLocalScope name cState in 
+                                    case local of
+                                        Nothing -> err "Function does not exist"
+                                        Just a -> case Map.lookup var a of 
+                                                   Just val -> return val
+                                                   Nothing -> err "Variable does not exist"
+                                       
+                                -- case Map.lookup var cState of
+                                --     Nothing -> err $ "Variable " ++ var ++ " does not exits"
+                                --     Just a -> return a 
 
 
 -- eval :: Program -> Maybe [String]
@@ -84,7 +270,7 @@ createGlobal ((Def funcName params ast): rest) = Map.insert funcName (params, as
 ifTest = (Block [If (NEq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])
 retTest = [Ret (Val 3)]
 
-whileTest = [While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val 2))]),Ret (Var "x")]
+whileTest = [Block [Assign "x" (Val 10), While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val 2))]),Ret (Var "x")]]
 
 ifelseTest = [IfElse (Eq (Var "x") (Val 2)) (Block [Ret (Plus (Var "x") (Var "x"))]) (Block [Ret (Var "x")])]
 
@@ -312,98 +498,3 @@ funcTest = (P [Def "main" [] (Block [If (Eq (Val 2) (Val 2)) (Block [Ret (Val 4)
                                     
 
 
-createLocal :: [(String,Integer)] -> LocalScope
-createLocal [] = Map.empty
-createLocal ((var, args):rest) = Map.insert var args (createLocal rest)
-
-filterList :: [Unsafe Integer] -> [Integer]
-filterList lst = [x | Ok x <- lst] 
-
--- testing = evalExpr (Call "foo" [(Plus (Val 2) (Val 8))]) (createGlobal test2) [Map.empty]
--- testing' = evalExpr (Call "foo" [(Div (Val 2) (Val 0))]) (createGlobal test2) [Map.empty]
-
--- testEvalExpr = evalExpr (Plus (Div (Val 2) (Val 2)) (Div (Val 8) (Val 0))) Map.empty [Map.empty]
--- test' = evalExpr (Not (Not (Not (Not (Eq (Val 2) (Val 2)))))) Map.empty [Map.empty]
-
-data Val = I Integer deriving Show
-
-
-
-run :: Expr -> (Unsafe Integer, LocalScope)
-run a = r (evalExpr a) (createLocal [("x", 4)])
-
-evalExpr :: Expr -> StatefulUnsafe LocalScope Integer
-evalExpr (Val i) = return i
-evalExpr (Plus l r) = do x <- evalExpr l
-                         y <- evalExpr r
-                         return $ x + y
-evalExpr (Sub l r) = do x <- evalExpr l
-                        y <- evalExpr r
-                        return $ x - y
-evalExpr (Mult l r) = do x <- evalExpr l
-                         y <- evalExpr r
-                         return $ x * y
-evalExpr (Div l r) = do x <- evalExpr l
-                        y <- evalExpr r
-                        if y == 0
-                            then err "Cannot divide by 0"
-                            else return $ x `div` y
-evalExpr (Mod l r) = do x <- evalExpr l
-                        y <- evalExpr r
-                        if y == 0
-                            then err "Cannot divide by 0"
-                            else return $ x `mod` y
-evalExpr (Eq l r) = do x <- evalExpr l
-                       y <- evalExpr r
-                       if x == y
-                        then return 1
-                        else return 0
-evalExpr (NEq l r) = do x <- evalExpr l
-                        y <- evalExpr r
-                        if x == y
-                         then return 0
-                         else return 1
-evalExpr (Lt l r) = do x <- evalExpr l 
-                       y <- evalExpr r
-                       if x < y
-                        then return 1
-                        else return 0
-evalExpr (LtEq l r) = do x <- evalExpr l 
-                         y <- evalExpr r
-                         if x <= y
-                          then return 1
-                          else return 0   
-evalExpr (Gt l r) = do x <- evalExpr l 
-                       y <- evalExpr r
-                       if x > y
-                        then return 1
-                        else return 0
-evalExpr (GtEq l r) = do x <- evalExpr l 
-                         y <- evalExpr r
-                         if x >= y
-                          then return 1
-                          else return 0
-evalExpr (And l r) = do x <- evalExpr l
-                        case x of
-                            0 -> return 0
-                            _ -> do y <- evalExpr r
-                                    case y of 
-                                        0 -> return 0
-                                        _ -> return 1
-evalExpr (Or l r) = do x <- evalExpr l 
-                       case x of
-                        0 -> do y <- evalExpr r 
-                                case y of
-                                  0 -> return 0
-                                  _ -> return 1
-                        _ -> return 1
-evalExpr (Not expr) = do x <- evalExpr expr
-                         case x of
-                            0 -> return 1
-                            _ -> return 0
-
-evalExpr (Var var) = do cState <- get
-                        traceShowM cState
-                        case Map.lookup var cState of
-                            Nothing -> err $ "Variable " ++ var ++ " does not exits"
-                            Just a -> return a 
