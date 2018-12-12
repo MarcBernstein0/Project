@@ -429,7 +429,7 @@ test12 = concat [
    "                       ",
    "def main() {                    ",
    "    k = 1;                    ",
-   "    while(k<20) {                    ",
+   "    while(k<3) {                    ",
    "        q = Q(k);                    ",
    "        print q;                    ",
    "        k = k + 1;                    ",
@@ -439,12 +439,11 @@ test12 = concat [
 
 test13 = concat [
     "def fib(x){",
-    "   if(n == 1 || n == 0){",
+    "   if(x == 1 || x == 0){",
     "     return 1;",
     "   }",
     "   else{",
-    "     x = fib(x-1) + fib(x-2);",
-    "     return x;",
+    "     return fib(x-1) + f(x-2);",
     "    }",
     "}",
     "def main() {                    ",
