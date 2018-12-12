@@ -136,8 +136,9 @@ token pa = do spaces
 
 -- parse what we will consider a good variable name
 varParser :: Parser String
-varParser = do chars <- some (sat isAlpha)
-               return chars
+varParser = do first <- (sat isAlpha) 
+               rest <- rep (sat isAlphaNum)
+               return $ first:rest
 
 
 

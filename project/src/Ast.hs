@@ -37,6 +37,7 @@ data Expr = Val Integer --done
           | Not Expr --done
 
           | Var String --done
+          | VarNeg String
           | Call String [Expr] --done
           deriving Show
 

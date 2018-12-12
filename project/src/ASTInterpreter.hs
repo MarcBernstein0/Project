@@ -9,9 +9,9 @@ import Data.Map as Map
 type GlobalScope = Map String ([String],Stmt) -- TODO change to be the type of state, you have freedom for how you implement it
 type LocalScope = Map String Integer
 
-type State = Map String ([String], Stmt, LocalScope, [String])
+type State = Map String ([String], Stmt, [LocalScope], [String])
 
-
+testNegate = (P [Def "main" [] (Block [Assign "x" (Val 6),Assign "y" (Val 8),Assign "z" (Plus (Plus (Div (Mult (Var "x") (Var "y")) (Val 3)) (VarNeg "x")) (Mult (Val 2) (Var "y"))),Assign "w" (Sub (Var "z") (Mod (Var "x") (Sub (Var "x") (Val 2)))),Print (Var "w"),Ret (Val 0)])])
 test = [Def "main" [] (Block [Ret (Val 1)])]
 test' = P [Def "f" ["x"] (Block [Ret (Mult (Var "x") (Val 10))]),Def "main" [] (Block [Assign "x" (Val 10),Assign "x" (Call "f" [Var "x"]), Print (Var "x")])]
 test'' = P [Def "f" [] (Block [Ret (Val 100)]),Def "main" [] (Block [Assign "x" (Call "f" []),Print (Var "x"),Ret (Var "x")])]
@@ -21,6 +21,23 @@ testLoop = P [Def "main" [] (Block [Assign "k" (Val 1),Assign "sum" (Val 0),Whil
 testNestLoop = P [Def "main" [] (Block [Assign "n" (Val 1),Assign "count" (Val 0),While (LtEq (Var "n") (Val 3)) (Block [Assign "m" (Val 1),While (LtEq (Var "m") (Val 4)) (Block [If (Eq (Mod (Var "m") (Var "n")) (Val 0)) (Block [Assign "count" (Plus (Var "count") (Val 1))]),Assign "m" (Plus (Var "m") (Val 1))]),Assign "n" (Plus (Var "n") (Val 1))]),Print (Var "count"),Ret (Val 0)])]
 test10Prime = P [Def "main" [] (Block [Assign "count" (Val 0),Assign "limit" (Val 10),Assign "n" (Val 2),While (LtEq (Var "count") (Var "limit")) (Block [Assign "isPrime" (Val 1),Assign "k" (Val 2),While (Lt (Var "k") (Var "n")) (Block [If (Eq (Mod (Var "n") (Var "k")) (Val 0)) (Block [Assign "isPrime" (Val 0)]),Assign "k" (Plus (Var "k") (Val 1))]),If (Eq (Var "isPrime") (Val 1)) (Block [Print (Var "n"),Assign "count" (Plus (Var "count") (Val 1))]),Assign "n" (Plus (Var "n") (Val 1))]),Ret (Val 0)])]
 test2 = [Def "foo" ["x"] (Block [If (Or (Eq (Var "x") (Val 2)) (Eq (Var "x") (Val 3))) (Block [Print (Var "x")])]),Def "main" [] (Block [Ret (Val 1)])]
+testShortCircuit = P [Def "main" [] (Block [Assign "x" (Val 3),Assign "y" (Val 5),Assign "z" (Val 1),If (And (Gt (Var "x") (Val 2)) (Lt (Var "y") (Val 5))) (Block [Print (Var "x")]),If (Or (Gt (Var "x") (Val 2)) (Lt (Var "y") (Val 5))) (Block [Print (Var "x")]),If (Or (And (Gt (Var "x") (Val 2)) (Lt (Var "y") (Val 5))) (Not (Eq (Var "z") (Val 2)))) (Block [Print (Var "x")]),If (Or (NEq (Var "z") (Val 2)) (And (Gt (Var "x") (Val 2)) (Lt (Var "y") (Val 5)))) (Block [Print (Var "x")]),Ret (Val 0)])]
+testFuncCall = P [Def "f" ["x"] (Block [Assign "n" (Plus (Var "x") (Val 1)),Assign "n" (Mult (Var "n") (Val 2)),Ret (Var "n")]),Def "main" [] (Block [Assign "y" (Val 2),Assign "n" (Val 3),Assign "z" (Call "f" [Plus (Var "y") (Var "n")]),Print (Var "z"),Ret (Val 0)])]
+testMultCall = P [Def "succ" ["x"] (Block [Ret (Plus (Var "x") (Val 1))]),Def "main" [] (Block [Assign "a" (Val 1),Assign "z" (Plus (Call "succ" [Var "a"]) (Mult (Call "succ" [Plus (Var "a") (Val 1)]) (Call "succ" [Mult (Var "a") (Val 2)]))),Print (Var "z"),Ret (Val 0)])]
+testNestedCall =P [Def "succ" ["x"] (Block [Ret (Plus (Var "x") (Val 1))]),Def "main" [] (Block [Assign "a" (Val 5),Assign "z" (Call "succ" [Call "succ" [Call "succ" [Var "a"]]]),Print (Var "z"),Ret (Val 0)])]
+testFuncsCallFuncs=P [Def "succ" ["x"] (Block [Ret (Plus (Var "x") (Val 1))]),Def "times2" ["x"] (Block [Ret (Mult (Var "x") (Val 2))]),Def "f" ["y"] (Block [Assign "z" (Call "succ" [Var "y"]),Assign "y" (Call "times2" [Var "z"]),Ret (Var "y")]),Def "main" [] (Block [Assign "z" (Call "f" [Val 10]),Print (Var "z"),Ret (Val 0)])]
+testGCD = P [Def "gcd" ["b"] (Block [Assign "a" (Val 2854),While (NEq (Var "b") (Val 0)) (Block [Assign "t" (Var "b"),Assign "b" (Mod (Var "a") (Var "b")),Assign "a" (Var "t")]),Ret (Var "a")]),Def "main" [] (Block [Assign "m" (Val 264),Assign "res" (Call "gcd" [Var "m"]),Print (Var "res"),Ret (Val 0)])]
+testRec = P [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "n") (Val 1)) (Eq (Var "n") (Val 0))) (Block [Ret (Val 1)]) (Block [Assign "x" (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)])),Ret (Var "x")])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 3]),Print (Var "k"),Ret (Val 0)])]
+
+testFib = P [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 1)]) (Block [Assign "x" (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)])),Ret (Var "x")])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 3]),Print (Var "k"),Ret (Val 0)])]
+
+testClean = P [Def "f" ["x"] (Block [Assign "x" (Plus (Var "x") (Val 1)),Ret (Var "x")]),Def "main" [] (Block [Assign "x" (Val 0),Print (Plus (Call "f" [Var "x"]) (Call "f" [Var "x"]))])]
+
+
+
+testing' = P [Def "main" [] (Block [Assign "x" (Val 0),IfElse (NEq (Var "x") (Val 0)) (Block [Ret (Val 1)]) (Block [Print (Var "x"),Ret (Val 100)])])]
+
+
 
 -- createGlobal :: [Stmt] -> globalScope
 -- createGlobal [] = G $ Map.empty
@@ -39,7 +56,7 @@ createGlobal ((Def funcName params ast): rest) = Map.insert funcName (params, as
 
 createState :: [Stmt] -> State
 createState [] = Map.empty
-createState ((Def funcName params ast):rest) = Map.insert funcName (params, ast, Map.empty, []) (createState rest)
+createState ((Def funcName params ast):rest) = Map.insert funcName (params, ast, [], []) (createState rest)
 
 
 -- testGlob = createState test
@@ -62,7 +79,8 @@ getLocalScope :: String -> State -> Maybe LocalScope
 getLocalScope funcName state = let local = Map.lookup funcName state in
                                 case local of
                                     Nothing -> Nothing
-                                    Just (_,_,lc,_) -> Just lc
+                                    Just (_,_,[],_) -> Nothing
+                                    Just (_,_,(x:xs),_) -> Just x
 
 data StmtRet = Nil | RetVal Integer | RetPass | RetBreak | RetCont  deriving Show
 
@@ -108,15 +126,16 @@ evalStmt (funcName, (Block code)) = do res <- evalProgram (funcName, code)
                                        --traceShowM $ "block evalStmt " ++ (show code)
                                        return res
 evalStmt (funcName, Ret expr) = do res <- evalExpr (funcName, expr)
-                                   --traceShowM "Starting return call"
+                                   traceShowM "Starting return call"
+                                   traceShowM res
                                    state <- get 
                                    let funcState = Map.lookup funcName state in 
                                     case funcState of
                                       Nothing -> err "Function does not exist"
-                                      Just (p,a,_,strLst) -> let updateState = Map.insert funcName (p,a,Map.empty,strLst) state in 
+                                      Just (p,a,l,strLst) -> let updateState = Map.insert funcName (p,a,(drop 1 l),strLst) state in 
                                                               do put updateState
                                                                  test <- get 
-                                                                 -- traceShowM $ "returning " ++ (show test)
+                                                                 traceShowM $ "returning " ++ (show res) 
                                                                  return $RetVal res
 evalStmt (funcName, (While expr code)) = do cond <- evalExpr (funcName, expr)
                                             --traceShowM $ "condition for while " ++ (show cond)
@@ -135,24 +154,36 @@ evalStmt (funcName, (If expr code)) = do cond <- evalExpr (funcName, expr)
                                              else return RetPass
 evalStmt (funcName, (IfElse expr blockT blockF)) = do cond <- evalExpr (funcName, expr)
                                                       if cond /= 0
-                                                        then do evalStmt (funcName, blockT)
+                                                        then do res <- evalStmt (funcName, blockT)
+                                                                traceShowM $ "Result of if block " ++ (show res)
+                                                                state <- get
+                                                                traceShowM state
                                                                 return RetPass
-                                                        else do evalStmt (funcName, blockF)
+                                                        else do res <- evalStmt (funcName, blockF)
+                                                                traceShowM $ "Result of else block " ++ (show res)
+                                                                state <- get
+                                                                --traceShowM state
                                                                 return RetPass
 evalStmt (funcName, (Assign var val)) = do res <- evalExpr (funcName, val)
-                                           --traceShowM $ (show res) ++ " assigning function"
+                                           traceShowM $ (show res) ++ " assigning function"
                                            state <- get 
                                            let funcState = Map.lookup funcName state in 
                                             do case funcState of
                                                 Nothing -> err "Function does not exist"
-                                                Just (p,a,lc,strLst) -> let newLc = Map.insert var res lc 
-                                                                            newState = Map.insert funcName (p, a, newLc, strLst) state
-                                                                        in do put newState
-                                                                              state' <- get 
-                                                                              -- traceShowM state'
-                                                                              return RetPass
+                                                Just (p,a,(lc:rest),strLst) -> let newLc = Map.insert var res lc 
+                                                                                   newState = Map.insert funcName (p, a, (newLc:rest), strLst) state
+                                                                                in do put newState
+                                                                                      state' <- get 
+                                                                                      traceShowM state'
+                                                                                      return RetPass
+                                                Just (p,a,[],strLst) -> let newLc = Map.insert var res Map.empty
+                                                                            newState = Map.insert funcName (p,a,[newLc],strLst) state
+                                                                         in do put newState
+                                                                               state' <- get 
+                                                                               traceShowM state'
+                                                                               return RetPass
 evalStmt (funcName, (Print expr)) = do res <- evalExpr (funcName, expr)
-                                       -- traceShowM res
+                                       --traceShowM res
                                        state <- get 
                                        let funcState = Map.lookup "main" state in 
                                         case funcState of
@@ -252,8 +283,15 @@ evalExpr (name, (Not expr)) = do x <- evalExpr (name, expr)
                                  case x of
                                     0 -> return 1
                                     _ -> return 0
+evalExpr (name, (VarNeg var)) = do cState <- get
+                                   let local = getLocalScope name cState in 
+                                    case local of 
+                                      Nothing -> err "Function does not exist"
+                                      Just a -> case Map.lookup var a of
+                                                  Just val -> do return $ -val
+                                                  Nothing -> err "Variable does not exist"
 evalExpr (name, (Var var)) = do cState <- get
-                                --traceShowM var
+                                traceShowM $ "Looking up variable " ++ var
                                 let local = getLocalScope name cState in 
                                     case local of
                                         Nothing -> err "Function does not exist"
@@ -276,15 +314,17 @@ evalExpr (name, (Call func (x:xs))) = do cState <- get
                                            case getFunc of
                                             Nothing -> err $ "Function " ++ func ++ " does not exist"
                                             Just (p,a,l,strLst) -> do res <- evalExpr (name, x)
-                                                                      traceShowM res
+                                                                      --traceShowM res
+                                                                      --traceShowM p
                                                                       let newLocal = createLocal (zip p [res]) 
-                                                                          newState = Map.insert func (p,a,newLocal,strLst) cState
+                                                                          newState = Map.insert func (p,a,(newLocal:l),strLst) cState
                                                                        in do put newState
+                                                                             traceShowM $ "Result of func call " ++ (show newLocal)
                                                                              res <- evalProgram (func, [a])
-                                                                             --traceShowM $ "Result of func call " ++ (show res)
                                                                              case res of
                                                                               RetVal i -> do return i
-                                                                              otherwise -> err "Nothing returned"
+                                                                              otherwise -> do traceShowM res
+                                                                                              err "Nothing returned"
                                                                        
 
 -- evalArgs :: (String, [Expr]) -> StatefulUnsafe State [Integer]

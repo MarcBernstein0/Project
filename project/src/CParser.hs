@@ -61,11 +61,17 @@ notParser = (do token $ literal "!"
                 return $ Not res) <||> atoms
 
 atoms :: Parser Expr
-atoms = ints <||> funcCall  <||> vars <||> parens
+atoms = ints <||> funcCall  <||> varsNeg <||> vars <||> parens
 
 ints :: Parser Expr 
 ints = do res <- intParser
           return $ Val res
+
+
+varsNeg :: Parser Expr
+varsNeg = (do token $ literal "-"
+              res <- varParser
+              return $ VarNeg res) 
 
 vars :: Parser Expr
 vars = do var <- varParser
@@ -194,7 +200,15 @@ funcTest3 = "def foo(x){if(x==2||x==3) {return y;} }"
 funcTest4 = "def foo(x){if(x==2){return y;} if(x==3){return z;}}"
 combTest =  funcTest3 ++ tst
 
-
+testNegVar = concat [
+   "def main() {                       ",
+   "   x = 6;                     ",
+   "   y = 8;                    ",
+   "   z = x * y / 3 + -x + 2 * y;                     ",
+   "   w = z - x % (x - 2);                    ",
+   "   print w;                    ",
+   "   return 0;                     ",
+   "}                    "]
 
 test2 = concat [
    "def main() {                    ",
@@ -286,3 +300,178 @@ test5 = concat [
    "   }                    ",
    "   return 0;                    ",
    "}                    "]
+test6 = concat [
+   "def main() {                    ",
+   "                    ",
+   "    x = 3;                    ",
+   "    y = 5;                    ",
+   "    z = 1;                    ",
+   "                        ",
+   "    if( x > 2 && y < 5) {                    ",
+   "        print x;                    ",
+   "    }                    ",
+   "                        ",
+   "    if( x > 2 || y < 5) {                    ",
+   "        print x;                    ",
+   "    }                    ",
+   "                        ",
+   "    if( x > 2 && y < 5 || !(z == 2)) {                    ",
+   "        print x;                    ",
+   "    }                        ",
+   "                    ",
+   "    if(z != 2 || x > 2 && y < 5) {                    ",
+   "        print x;                    ",
+   "    }                    ",
+   "    return 0;                     ",
+   "}                    "]
+test7 = concat [
+   "def f(x) {                    ",
+   "    n = x + 1;                    ",
+   "    n = n * 2;                    ",
+   "    return n;                    ",
+   "}                    ",
+   "                    ",
+   "def main() {                    ",
+   "    y = 2;                    ",
+   "    n = 3;                    ",
+   "    z = f(y+n);                    ",
+   "    print z;                    ",
+   "    return 0;                     ",
+   "}                    "]
+
+------------------------------------------------------------------
+--Test 8: multiple function calls 
+test8 = concat [
+   "def succ(x) {                    ",
+   "    return x + 1;                    ",
+   "}                    ",
+   "                    ",
+   "def main() {                    ",
+   "    a = 1;                     ",
+   "    z = succ(a) + succ(a+1) * succ(a*2);                     ",
+   "    print z;                    ",
+   "    return 0;                     ",
+   "}                    "]
+
+------------------------------------------------------------------
+--Test 9: multiple nested function calls 
+test9 = concat [
+   "def succ(x) {                    ",
+   "    return x + 1;                    ",
+   "}                    ",
+   "                    ",
+   "def main() {                    ",
+   "    a = 5;                    ",
+   "    z = succ(succ(succ(a)));                    ",
+   "    print z;                    ",
+   "    return 0;                     ",
+   "}                    "]
+
+------------------------------------------------------------------
+--Test 10: multiple functions calling each other
+test10 = concat [
+   "def succ(x) {                    ",
+   "    return x + 1;                    ",
+   "}                    ",
+   "                    ",
+   "def times2(x) {                    ",
+   "    return x * 2;                    ",
+   "}                    ",
+   "                    ",
+   "def f(y) {                    ",
+   "    z = succ(y);                    ",
+   "    y = times2(z);                    ",
+   "    return y;                    ",
+   "}                    ",
+   "                    ",
+   "def main() {                    ",
+   "    z = f(10);                    ",
+   "    print z;                    ",
+   "    return 0;                     ",
+   "}                    "]
+
+------------------------------------------------------------------
+
+--Test 11: Recursion: This calculates the GCD of two numbers; because we only
+--        have one parameter for a function, I put the second number
+--  inside the function!
+test11 = concat [
+   "def gcd( b) {                    ",
+   "    a = 2854;                    ",
+   "    while( b != 0 ) {                    ",
+   "       t = b;                     ",
+   "       b = a % b;                     ",
+   "       a = t;                     ",
+   "    }                    ",
+   "    return a;                    ",
+   "}                    ",
+   "                    ",
+   "                        ",
+   "def main() {                    ",
+   "    m = 264;                    ",
+   "    res = gcd(m);                    ",
+   "    print res;                    ",
+   "    return 0;                     ",
+   "}                    "]
+
+------------------------------------------------------------------
+--Test 12: Produces the first 20 members of the Hofstader Q sequence
+--in a sequence of print statements
+test12 = concat [
+   "def Q(n) {                    ",
+   "    if(n <= 2) {                    ",
+   "        return 1;                    ",
+   "    }                    ",
+   "    else {                    ",
+   "        return Q(n - Q(n-1)) + Q(n - Q(n-2));                    ",
+   "    }                    ",
+   "}                    ",
+   "                       ",
+   "def main() {                    ",
+   "    k = 1;                    ",
+   "    while(k<20) {                    ",
+   "        q = Q(k);                    ",
+   "        print q;                    ",
+   "        k = k + 1;                    ",
+   "    }                    ",
+   "    return 0;                     ",
+   "}                    "]
+
+test13 = concat [
+    "def fib(x){",
+    "   if(n == 1 || n == 0){",
+    "     return 1;",
+    "   }",
+    "   else{",
+    "     x = fib(x-1) + fib(x-2);",
+    "     return x;",
+    "    }",
+    "}",
+    "def main() {                    ",
+   "    k = fib(3);                    ",
+   "    print k;",
+   "    return 0;",
+   "    }"]
+
+
+test14 = concat [
+   "def f(x){",
+   "x = x + 1;",
+   "return x;",
+   "}",
+   "def main(){",
+   "x=0;",
+   "print f(x)+f(x);",
+   "}"]
+
+-- def f(x){
+--   x = x + 1
+--   return x
+-- }
+
+-- def main(){
+--   x = 0
+--   print(f(x) + f(x))
+-- }
+
+
