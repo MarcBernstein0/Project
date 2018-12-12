@@ -46,19 +46,6 @@ testingRecursion = P [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) 
 testingRecCallInRet = P [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 3]),Print (Var "k"),Ret (Val 0)])]
 
 testQ = P [Def "Q" ["n"] (Block [IfElse (LtEq (Var "n") (Val 2)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 1)])]) (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 2)])]))])]),Def "main" [] (Block [Assign "k" (Val 1),While (LtEq (Var "k") (Val 20)) (Block [Assign "q" (Call "Q" [Var "k"]),Print (Var "q"),Assign "k" (Plus (Var "k") (Val 1))]),Ret (Val 0)])]
--- createGlobal :: [Stmt] -> globalScope
--- createGlobal [] = G $ Map.empty
--- createGlobal ((Def "main" [] ast):rest) = G $ Map.insert ("main",[]) ast Map.empty
--- createGlobal ((Def name params ast):rest) = G $ Map.insert (name, params) ast (createGlobal rest)
--- -- Tried adding parameters to it
-
--- -- createGlobal :: [Stmt] -> (Map String Stmt) 
--- -- createGlobal [] = Map.empty
--- -- createGlobal ((Def name params ast):rest) = Map.insert name ast (createGlobal rest)
-
-createGlobal :: [Stmt] -> GlobalScope 
-createGlobal [] = Map.empty
-createGlobal ((Def funcName params ast): rest) = Map.insert funcName (params, ast) (createGlobal rest)  
 
 
 createState :: [Stmt] -> State
@@ -66,7 +53,7 @@ createState [] = Map.empty
 createState ((Def funcName params ast):rest) = Map.insert funcName (params, ast, [], []) (createState rest)
 
 
--- testGlob = createState test
+
 
 
 createLocal :: [(String,Integer)] -> LocalScope
@@ -76,11 +63,6 @@ createLocal ((var, args):rest) = Map.insert var args (createLocal rest)
 filterList :: [Unsafe Integer] -> [Integer]
 filterList lst = [x | Ok x <- lst] 
 
--- testing = evalExpr (Call "foo" [(Plus (Val 2) (Val 8))]) (createGlobal test2) [Map.empty]
--- testing' = evalExpr (Call "foo" [(Div (Val 2) (Val 0))]) (createGlobal test2) [Map.empty]
-
--- testEvalExpr = evalExpr (Plus (Div (Val 2) (Val 2)) (Div (Val 8) (Val 0))) Map.empty [Map.empty]
--- test' = evalExpr (Not (Not (Not (Not (Eq (Val 2) (Val 2)))))) Map.empty [Map.empty]
 
 getLocalScope :: String -> State -> Maybe LocalScope
 getLocalScope funcName state = let local = Map.lookup funcName state in
@@ -90,6 +72,22 @@ getLocalScope funcName state = let local = Map.lookup funcName state in
                                     Just (_,_,(x:xs),_) -> Just x
 
 data StmtRet = Nil | RetVal Integer | RetPass | RetBreak | RetCont  deriving Show
+
+
+run :: Program -> Unsafe [String]
+run program = let executeProgram = run' program in
+               case executeProgram of
+                (Error str, _) -> Error str
+                (Ok output, _) -> let printElements output in Ok output
+
+
+printElements :: [String] -> IO()
+printElements = mapM_ putStrLn
+
+run' :: Program -> (Unsafe [String], State)
+run' program = r (eval program) Map.empty
+
+
 
 
 eval :: Program -> StatefulUnsafe State [String]
@@ -112,11 +110,6 @@ eval (P code) = let state = createState code in
 
 evalProgram :: (String, [Stmt]) -> StatefulUnsafe State StmtRet
 evalProgram (funcName, []) = return Nil
-  -- do state <- get 
-  --                               case Map.lookup funcName state of
-  --                                 Nothing -> err "Fuck this"
-  --                                 Just (p,a,l,str) -> do traceShowM $ "empty list has been hit " ++ (show l)
-  --                                                        return RetPass
 evalProgram (funcName, (head:tail)) = do res1 <- evalStmt (funcName, head)
                                          -- traceShowM (head:tail)
                                          -- traceShowM $ (show res1) ++ " in prgram"
@@ -188,13 +181,13 @@ evalStmt (funcName, (Assign var val)) = do res <- evalExpr (funcName, val)
                                                 Just (p,a,(lc:rest),strLst) -> let newLc = Map.insert var res lc 
                                                                                    newState = Map.insert funcName (p, a, (newLc:rest), strLst) state
                                                                                 in do put newState
-                                                                                      state' <- get 
+                                                                                      -- state' <- get 
                                                                                       -- traceShowM state'
                                                                                       return RetPass
                                                 Just (p,a,[],strLst) -> let newLc = Map.insert var res Map.empty
                                                                             newState = Map.insert funcName (p,a,[newLc],strLst) state
                                                                          in do put newState
-                                                                               state' <- get 
+                                                                               -- state' <- get 
                                                                                -- traceShowM state'
                                                                                return RetPass
 evalStmt (funcName, (Print expr)) = do res <- evalExpr (funcName, expr)
@@ -218,16 +211,6 @@ evalStmt (funcName, (Continue)) = return RetCont
                                                 
                                          
 
-run' :: Program -> (Unsafe [String], State)
-run' program = r (eval program) Map.empty
-
-
-run'' :: (String, Stmt) -> (Unsafe StmtRet, State)
-run'' (name, a) = r (evalStmt (name, a)) (createState test)
-
-
-run :: (String, Expr) -> (Unsafe Integer, State)
-run (str, a) = r (evalExpr (str, a)) (createState test2)
 
 evalExpr :: (String, Expr) -> StatefulUnsafe State Integer
 evalExpr (name, (Val i)) = return i
