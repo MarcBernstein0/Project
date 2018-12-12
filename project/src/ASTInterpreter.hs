@@ -57,17 +57,29 @@ getLocalScope funcName state = let local = Map.lookup funcName state in
                                     Nothing -> Nothing
                                     Just (_,_,lc,_) -> Just lc
 
+data StmtRet = Nil | RetVal Integer | RetPass | RetBreak | RetCont  deriving Show
 
-evalProgram :: (String, [Stmt]) -> StatefulUnsafe State Integer
-evalProgram (funcName, []) = return 0
+
+evalProgram :: (String, [Stmt]) -> StatefulUnsafe State StmtRet
+evalProgram (funcName, []) = return Nil
 evalProgram (funcName, (head:tail)) = do res1 <- evalStmt (funcName, head)
-                                         state <- get 
-                                         let funcState = Map.lookup funcName state in 
-                                          case funcState of
-                                            Nothing -> err "Function does not exist"
-                                            Just (_,_,l,_) -> if Map.size l == 0
-                                                                then return res1
-                                                                else evalProgram (funcName, tail)
+                                         traceShowM (head:tail)
+                                         traceShowM $ (show res1) ++ " in prgram"
+                                         case res1 of
+                                          Nil -> return Nil
+                                          RetPass -> evalProgram (funcName, tail)
+                                          RetVal i -> return $ RetVal i
+                                          RetBreak -> do traceShowM $"Tracing for tail " ++ (show tail)
+                                                         return RetBreak
+                                          RetCont -> return RetCont--evalProgram (funcName, (head:tail)) 
+                                         -- state <- get 
+                                         -- let funcState = Map.lookup funcName state in 
+                                         --  case funcState of
+                                         --    Nothing -> err "Function does not exist"
+                                         --    Just (_,_,l,_) -> if Map.size l == 0
+                                         --                        then return res1
+                                         --                        else evalProgram (funcName, tail)
+--evalProgram (funcName, ((Break):tail)) = evalProgram (funcName, tail)
 -- evalStmt (funcName, []) = return 0
 -- evalStmt (funcName, (Block code):rest) = do evalStmt (funcName, code)
 --                                             evalStmt (funcName, rest)
@@ -86,10 +98,12 @@ evalProgram (funcName, (head:tail)) = do res1 <- evalStmt (funcName, head)
 
 
 
-evalStmt :: (String, Stmt) -> StatefulUnsafe State Integer
+evalStmt :: (String, Stmt) -> StatefulUnsafe State StmtRet
 evalStmt (funcName, (Block code)) = do res <- evalProgram (funcName, code)
+                                       --traceShowM $ "block evalStmt " ++ (show code)
                                        return res
 evalStmt (funcName, Ret expr) = do res <- evalExpr (funcName, expr)
+                                   traceShowM "Starting return call"
                                    state <- get 
                                    let funcState = Map.lookup funcName state in 
                                     case funcState of
@@ -97,24 +111,28 @@ evalStmt (funcName, Ret expr) = do res <- evalExpr (funcName, expr)
                                       Just (p,a,_,strLst) -> let updateState = Map.insert funcName (p,a,Map.empty,strLst) state in 
                                                               do put updateState
                                                                  test <- get 
-                                                                 traceShowM test
-                                                                 return res
+                                                                 traceShowM $ "returning " ++ (show test)
+                                                                 return $RetVal res
 evalStmt (funcName, (While expr code)) = do cond <- evalExpr (funcName, expr)
-                                            traceShowM cond
+                                            traceShowM $ "condition for while " ++ (show cond)
                                             if cond /= 0
-                                                then do evalStmt (funcName, code)
-                                                        evalStmt (funcName, (While expr code))
-                                                else return 0
+                                                then do res <- evalStmt (funcName, code)
+                                                        case res of
+                                                          RetBreak -> return RetPass
+                                                          RetCont -> evalStmt (funcName, While expr code)
+                                                          otherwise -> evalStmt (funcName, (While expr code))
+                                                else return RetPass
 evalStmt (funcName, (If expr code)) = do cond <- evalExpr (funcName, expr)
+                                         traceShowM $ "what is code " ++ (show code)
                                          if cond /= 0
                                              then evalStmt (funcName, code)
-                                             else return 0
+                                             else return RetPass
 evalStmt (funcName, (IfElse expr blockT blockF)) = do cond <- evalExpr (funcName, expr)
                                                       if cond /= 0
                                                         then evalStmt (funcName, blockT)
                                                         else evalStmt (funcName, blockF)
 evalStmt (funcName, (Assign var val)) = do res <- evalExpr (funcName, val)
-                                           traceShowM res
+                                           traceShowM $ (show res) ++ " assigning function"
                                            state <- get 
                                            let funcState = Map.lookup funcName state in 
                                             do traceShowM funcState 
@@ -123,7 +141,9 @@ evalStmt (funcName, (Assign var val)) = do res <- evalExpr (funcName, val)
                                                 Just (p,a,lc,strLst) -> let newLc = Map.insert var res lc 
                                                                             newState = Map.insert funcName (p, a, newLc, strLst) state
                                                                         in do put newState
-                                                                              return res
+                                                                              state' <- get 
+                                                                              traceShowM state'
+                                                                              return RetPass
 evalStmt (funcName, (Print expr)) = do res <- evalExpr (funcName, expr)
                                        traceShowM res
                                        state <- get 
@@ -133,9 +153,12 @@ evalStmt (funcName, (Print expr)) = do res <- evalExpr (funcName, expr)
                                           Just (p,a,lc,strLst) -> let newPrint = (show res):strLst 
                                                                       newState = Map.insert "main" (p,a,lc,newPrint) state
                                                                   in do put newState
-                                                                        return res
+                                                                        return RetPass
 evalStmt (funcName, (Line expr)) = do res <- evalExpr (funcName, expr)
-                                      return 0
+                                      return RetPass
+evalStmt (funcName, (Break)) = return RetBreak
+evalStmt (funcName, (Continue)) = return RetCont
+
   
                                                -- let updateState = Map.insert funcName (p,a,(Map.insert var val l), strLst) state in 
                                                --                        do put updateState
@@ -146,7 +169,7 @@ evalStmt (funcName, (Line expr)) = do res <- evalExpr (funcName, expr)
                                                 
                                          
 
-run' :: (String, [Stmt]) -> (Unsafe Integer, State)
+run' :: (String, [Stmt]) -> (Unsafe StmtRet, State)
 run' (str, a) = r (evalProgram (str, a)) (createState test)
 
 run :: (String, Expr) -> (Unsafe Integer, State)
@@ -291,15 +314,19 @@ evalExpr (name, (Var var)) = do cState <- get
 ifTest = (Block [Assign "x" (Val 2), If (NEq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])
 retTest = [Ret (Val 3)]
 
-whileTest = [Block [Assign "x" (Val 10), While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val 2))]),Print (Var "x"), Ret (Var "x")]]
+whileTest = Block [Assign "x" (Val 10), While (Gt (Var "x") (Val 1)) (Block [Assign "x" (Div (Var "x") (Val 2))]),Print (Var "x"), Ret (Var "x")]
 
 ifelseTest = (Block [Assign "x" (Val 200), IfElse (Eq (Var "x") (Val 2)) (Block [Ret (Plus (Var "x") (Var "x"))]) (Block [Ret (Var "x")])])
 
-printTest = [Print (Plus (Var "x") (Val 2))]
+printTest = [Block [Assign "x" (Val 3), Print (Plus (Var "x") (Val 2))]]
 
-breakTest = (Block [While (Val 1) (Block [Assign "x" (Plus (Var "x") (Val 1)),If (Eq (Var "x") (Val 10)) (Block [Break])]),Print (Var "x")])
+breakTest = [Block [Assign "x" (Val 10), While (Lt (Var "x") (Val 20)) (Block [Assign "x" (Plus (Var "x") (Val 1)), If (Eq (Var "x") (Val 15))(Block [Print (Val 111), Break])]), Ret (Var "x")]]
 
-breakTest1 = [Block [Assign "x" (Val 0),If (Eq (Var "x") (Val 0)) (Block [Print (Var "x"), Break]),Print (Var "x")]]
+
+
+contTest = [Block [Assign "x" (Val 10), While (Lt (Var "x") (Val 20)) (Block [Assign "x" (Plus (Var "x") (Val 1)), If (Eq (Var "x") (Val 15))(Block [Print (Val 111), Continue]), Print (Var "x")]), Ret (Var "x")]]
+
+breakTest1 = [Block [Assign "x" (Val 10),If (Eq (Var "x") (Val 10)) (Block [Break,Print (Val 11111111111111)]), Ret (Var "x")]]
 
 testLocal = createLocal [("x", 0)]
 
@@ -307,7 +334,12 @@ testLocal = createLocal [("x", 0)]
 funcTest = (P [Def "main" [] (Block [If (Eq (Val 2) (Val 2)) (Block [Ret (Val 4)]),Ret (Sub (Val 2) (Val 1))])])
 
 
-
+-- x = 10
+-- if(x==10){
+--   break;
+--   print x;
+-- }
+-- print x;
 
 
 

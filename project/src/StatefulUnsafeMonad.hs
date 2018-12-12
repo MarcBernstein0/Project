@@ -20,11 +20,15 @@ r (StatefulUnsafe state) s = state s
 err :: String -> StatefulUnsafe e a
 err s = StatefulUnsafe $ \ state -> (Error s, state)
 
+
+
 instance Functor (StatefulUnsafe s) where
   -- fmap :: (a -> b) -> Stateful a -> Stateful b
   fmap f (StatefulUnsafe sa) =  StatefulUnsafe $ \ state -> case sa state of
                                                               (Ok a, output) -> (Ok $f a, output)
                                                               (Error e, output) -> (Error e, output)
+
+
 
 --ignore this for now
 instance Applicative (StatefulUnsafe s) where
