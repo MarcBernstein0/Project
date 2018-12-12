@@ -14,8 +14,8 @@ data Stmt = Def String [String] Stmt --done
           | Line Expr --done
           | Ret Expr --done
           | Print Expr --done 
-          | Break 
-          | Continue 
+          | Break --done
+          | Continue --done
           deriving Show
 
 
