@@ -42,12 +42,13 @@ test12 = P [Def "Q" ["n"] (Block [IfElse (LtEq (Var "n") (Val 2)) (Block [Ret (V
 
 
 
-testingRecursion = P [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 3)]) (Block [Assign "x" (Call "fib" [Sub (Var "x") (Val 1)]),Ret (Var "x")])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 1]),Print (Var "k"),Ret (Val 0)])]
+testingRecursion =  [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 15)]) (Block [Assign "x" (Call "fib" [Sub (Var "x") (Val 1)]),Ret (Var "x")])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 15]),Print (Var "k"),Ret (Val 0)])]
 
+testingMultiArgs = P [Def "f" ["x","y"] (Block [Ret (Plus (Div (Var "x") (Var "y")) (Val 2))]),Def "main" [] (Block [Assign "x" (Call "f" [Val 3,Val 3]), Print (Var "x"), Ret (Val 0)])]
 
-testingRecCallInRet = P [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 3]),Print (Var "k"),Ret (Val 0)])]
+-- testingRecCallInRet = [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 3]),Print (Var "k"),Ret (Val 0)])]
 
-testQ = P [Def "Q" ["n"] (Block [IfElse (LtEq (Var "n") (Val 2)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 1)])]) (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 2)])]))])]),Def "main" [] (Block [Assign "k" (Val 1),While (LtEq (Var "k") (Val 20)) (Block [Assign "q" (Call "Q" [Var "k"]),Print (Var "q"),Assign "k" (Plus (Var "k") (Val 1))]),Ret (Val 0)])]
+-- testQ = P [Def "Q" ["n"] (Block [IfElse (LtEq (Var "n") (Val 2)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 1)])]) (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 2)])]))])]),Def "main" [] (Block [Assign "k" (Val 1),While (LtEq (Var "k") (Val 20)) (Block [Assign "q" (Call "Q" [Var "k"]),Print (Var "q"),Assign "k" (Plus (Var "k") (Val 1))]),Ret (Val 0)])
 
 
 createState :: [Stmt] -> State
@@ -90,7 +91,12 @@ run' :: Program -> (Unsafe [String], State)
 run' program = r (eval program) Map.empty
 
 
+run'' :: (String, [Expr]) -> (Unsafe [Integer], State)
+run'' (name, a) = r (evalArgs (name, a)) Map.empty
 
+
+run''' :: (String , Expr) -> (Unsafe Integer, State)
+run''' (name, a) = r (evalExpr (name, a)) (createState $ [Def "foo" ["x","y"] (Block [Ret (Plus (Var "x") (Var "y"))])])
 
 eval :: Program -> StatefulUnsafe State [String]
 eval (P code) = let state = createState code in
@@ -308,30 +314,31 @@ evalExpr (name, (Call func [])) = do cState <- get
                                                                   case res of
                                                                    RetVal i -> do return i
                                                                    otherwise -> err "Nothing returned"
-evalExpr (name, (Call func (x:xs))) = do cState <- get
-                                         --traceShowM "Call function"
-                                         let getFunc = Map.lookup func cState in
-                                           case getFunc of
-                                            Nothing -> err $ "Function " ++ func ++ " does not exist"
-                                            Just (p,a,l,strLst) -> do res <- evalExpr (name, x)
-                                                                      -- traceShowM l
-                                                                      -- traceShowM res
-                                                                      let newLocal = createLocal (zip p [res]) 
-                                                                          newState = Map.insert func (p,a,(newLocal:l),strLst) cState
-                                                                       in do put newState
-                                                                             --traceShowM $ "Result of func call " ++ (show newLocal)
-                                                                             res <- evalProgram (func, [a])
-                                                                             case res of
-                                                                              RetVal i -> do return i
-                                                                              otherwise -> err "Nil was hit"
+evalExpr (name, (Call func expr)) = do cState <- get
+                                       --traceShowM "Call function"
+                                       let getFunc = Map.lookup func cState in
+                                         case getFunc of
+                                          Nothing -> err $ "Function " ++ func ++ " does not exist"
+                                          Just (p,a,l,strLst) -> do res <- evalArgs (name, expr)
+                                                                    -- traceShowM l
+                                                                    --traceShowM res
+                                                                    let newLocal = createLocal (zip p res) 
+                                                                        newState = Map.insert func (p,a,(newLocal:l),strLst) cState
+                                                                     in do put newState
+                                                                           --traceShowM $ "Result of func call " ++ (show newLocal)
+                                                                           res <- evalProgram (func, [a])
+                                                                           --traceShowM res
+                                                                           case res of
+                                                                            RetVal i -> do return i
+                                                                            otherwise -> err "Nil was hit"
                                                                        
 
--- evalArgs :: (String, [Expr]) -> StatefulUnsafe State [Integer]
--- evalArgs (name, []) = return []
--- evalArgs (name, (x:xs)) = do res <- evalExpr (name, x)
---                              traceShowM res
---                              rest <- evalArgs (name, xs)
---                              return $ [res]++rest
+evalArgs :: (String, [Expr]) -> StatefulUnsafe State [Integer]
+evalArgs (name, []) = return []
+evalArgs (name, (x:xs)) = do res <- evalExpr (name, x)
+                             --traceShowM res
+                             rest <- evalArgs (name, xs)
+                             return $ [res]++rest
                                         
 -- setLocal :: (String, [Expr]) -> State -> [Integer]
 -- setLocal (name, []) state = []

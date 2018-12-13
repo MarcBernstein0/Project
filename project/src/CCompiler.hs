@@ -7,17 +7,17 @@ import ICInterpreter
 compile :: Program -> IC_Program
 compile (P (head:rest)) = [compileStmt head]++ compile (P rest)
 
-compileStmt :: Stmt -> IC_Instruction
-compileStmt (Def name (head:rest) body) = undefined
-compileStmt While cond body = undefined
-compileStmt Block body = undefined
-compileStmt If cond body = undefined
-compileStmt Assign name val = undefined
-compileStmt Line body = undefined
-compileStmt Ret body = undefined
-compileStmt Print body = undefined
-compileStmt Break = undefined
-compileStmt Continue = undefined
+-- compileStmt :: Stmt -> IC_Instruction
+-- compileStmt (Def name (head:rest) body) = undefined
+-- compileStmt While cond body = undefined
+-- compileStmt Block body = undefined
+-- compileStmt If cond body = undefined
+-- compileStmt Assign name val = undefined
+-- compileStmt Line body = undefined
+-- compileStmt Ret body = undefined
+-- compileStmt Print body = undefined
+-- compileStmt Break = undefined
+-- compileStmt Continue = undefined
 
 
 
