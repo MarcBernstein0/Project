@@ -2,8 +2,10 @@ module ASTInterpreter where
 
 import Ast
 import StatefulUnsafeMonad
+import CParser
 import Debug.Trace
 import Data.Map as Map
+
 
 
 type GlobalScope = Map String ([String],Stmt) -- TODO change to be the type of state, you have freedom for how you implement it
@@ -74,15 +76,15 @@ getLocalScope funcName state = let local = Map.lookup funcName state in
 data StmtRet = Nil | RetVal Integer | RetPass | RetBreak | RetCont  deriving Show
 
 
-run :: Program -> Unsafe [String]
-run program = let executeProgram = run' program in
-               case executeProgram of
-                (Error str, _) -> Error str
-                (Ok output, _) -> let printElements output in Ok output
+-- runEverything :: IO() -> IO()
+-- runEverything = 
 
+run :: Program -> IO()
+run program = let res = run' program in
+                case res of
+                  (Error str,_) -> putStrLn str
+                  (Ok output,_) -> mapM_ putStrLn $ output
 
-printElements :: [String] -> IO()
-printElements = mapM_ putStrLn
 
 run' :: Program -> (Unsafe [String], State)
 run' program = r (eval program) Map.empty
