@@ -146,13 +146,13 @@ evalStmt (funcName, Ret expr) = do res <- evalExpr (funcName, expr)
                                       Just (p,a,l,strLst) -> let updateLocal = drop 1 l
                                                                  updateState = Map.insert funcName (p,a,updateLocal,strLst) state in 
                                                               do put updateState
-                                                                 newState <- get 
+                                                                 --newState <- get 
                                                                  -- traceShowM $ "Final local " ++ (show l)
                                                                  -- traceShowM $ "Updated local " ++ (show res)
                                                                  -- traceShowM $ "returning " ++ (show updateLocal) 
                                                                  return $RetVal res
 evalStmt (funcName, (While expr code)) = do cond <- evalExpr (funcName, expr)
-                                            --traceShowM $ "condition for while " ++ (show cond)
+                                            traceShowM $ "condition for while " ++ (show cond)
                                             if cond /= 0
                                                 then do res <- evalStmt (funcName, code)
                                                         case res of
@@ -324,7 +324,7 @@ evalExpr (name, (Call func expr)) = do cState <- get
                                                                           -- traceShowM l
                                                                           --traceShowM res
                                                                       then let newLocal = createLocal (zip p res) 
-                                                                              newState = Map.insert func (p,a,(newLocal:l),strLst) cState
+                                                                               newState = Map.insert func (p,a,(newLocal:l),strLst) cState
                                                                            in do put newState
                                                                                  --traceShowM $ "Result of func call " ++ (show newLocal)
                                                                                  res <- evalProgram (func, [a])
@@ -332,7 +332,7 @@ evalExpr (name, (Call func expr)) = do cState <- get
                                                                                  case res of
                                                                                   RetVal i -> do return i
                                                                                   otherwise -> err "Nil was hit"
-                                                                      else "There was an error with your arguments"
+                                                                      else err "There was an error with your arguments"
                                                                        
 
 evalArgs :: (String, [Expr]) -> StatefulUnsafe State [Integer]
