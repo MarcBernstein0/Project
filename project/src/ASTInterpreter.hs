@@ -320,17 +320,19 @@ evalExpr (name, (Call func expr)) = do cState <- get
                                          case getFunc of
                                           Nothing -> err $ "Function " ++ func ++ " does not exist"
                                           Just (p,a,l,strLst) -> do res <- evalArgs (name, expr)
-                                                                    -- traceShowM l
-                                                                    --traceShowM res
-                                                                    let newLocal = createLocal (zip p res) 
-                                                                        newState = Map.insert func (p,a,(newLocal:l),strLst) cState
-                                                                     in do put newState
-                                                                           --traceShowM $ "Result of func call " ++ (show newLocal)
-                                                                           res <- evalProgram (func, [a])
-                                                                           --traceShowM res
-                                                                           case res of
-                                                                            RetVal i -> do return i
-                                                                            otherwise -> err "Nil was hit"
+                                                                    if (length res) == (length p)
+                                                                          -- traceShowM l
+                                                                          --traceShowM res
+                                                                      then let newLocal = createLocal (zip p res) 
+                                                                              newState = Map.insert func (p,a,(newLocal:l),strLst) cState
+                                                                           in do put newState
+                                                                                 --traceShowM $ "Result of func call " ++ (show newLocal)
+                                                                                 res <- evalProgram (func, [a])
+                                                                                 --traceShowM res
+                                                                                 case res of
+                                                                                  RetVal i -> do return i
+                                                                                  otherwise -> err "Nil was hit"
+                                                                      else "There was an error with your arguments"
                                                                        
 
 evalArgs :: (String, [Expr]) -> StatefulUnsafe State [Integer]
