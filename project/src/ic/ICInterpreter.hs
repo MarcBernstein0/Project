@@ -24,7 +24,7 @@ import StatefulUnsafeMonad
 
 type IC_Program = [IC_Instruction]
 
-data Op = Var' String | Val' Int
+data Op = Var' String | Val' Int deriving Show
 
 data IC_Instruction
         = Plus'  Op Op Op
@@ -50,43 +50,44 @@ data IC_Instruction
         | Return'  Op
         | Print'  String Op
         | Halt'
+        deriving Show
 
-instance Show Op where
-  show (Var' x) = x
-  show (Val' v) = show v
+-- instance Show Op where
+--   show (Var' x) = x
+--   show (Val' v) = show v
 
-instance Show IC_Instruction where
-  show (Plus' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " + " ++ (show src2)
-  show (Minus' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " - " ++ (show src2)
-  show (Times' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " * " ++ (show src2)
-  show (Div' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " / " ++ (show src2)
-  show (Mod' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " % " ++ (show src2)
-  show (Uminus' dest src1) = (show dest) ++ " = - " ++ (show src1)
-  show (Equal' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " == " ++ (show src2)
-  show (NotEq' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " != " ++ (show src2)
-  show (Lt' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " < " ++ (show src2)
-  show (Gt' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " > " ++ (show src2)
-  show (Le' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " <= " ++ (show src2)
-  show (Ge' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " >= " ++ (show src2)
-  show (And' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " && " ++ (show src2)
-  show (Or' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " || " ++ (show src2)
-  show (Not' dest src1) = (show dest) ++ " = ! " ++ (show src1)
-  show (Assign' dest src) = (show dest) ++ " = " ++ (show src)
-  show (Bzero' src addr) = "bzero " ++ (show src) ++ " " ++ (show addr)
-  show (Jump' addr) = "jump " ++ (show addr)
-  show (Push') = "push"
-  show (Call' addr) = "call " ++ (show addr)
-  show (Return' addr) = "return " ++ (show addr)
-  show (Print' str src) = "print " ++ "\"" ++ str ++ "\" " ++ (show src)
-  show (Halt') = "halt"
+-- instance Show IC_Instruction where
+--   show (Plus' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " + " ++ (show src2)
+--   show (Minus' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " - " ++ (show src2)
+--   show (Times' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " * " ++ (show src2)
+--   show (Div' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " / " ++ (show src2)
+--   show (Mod' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " % " ++ (show src2)
+--   show (Uminus' dest src1) = (show dest) ++ " = - " ++ (show src1)
+--   show (Equal' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " == " ++ (show src2)
+--   show (NotEq' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " != " ++ (show src2)
+--   show (Lt' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " < " ++ (show src2)
+--   show (Gt' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " > " ++ (show src2)
+--   show (Le' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " <= " ++ (show src2)
+--   show (Ge' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " >= " ++ (show src2)
+--   show (And' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " && " ++ (show src2)
+--   show (Or' dest src1 src2) = (show dest) ++ " = " ++ (show src1) ++ " || " ++ (show src2)
+--   show (Not' dest src1) = (show dest) ++ " = ! " ++ (show src1)
+--   show (Assign' dest src) = (show dest) ++ " = " ++ (show src)
+--   show (Bzero' src addr) = "bzero " ++ (show src) ++ " " ++ (show addr)
+--   show (Jump' addr) = "jump " ++ (show addr)
+--   show (Push') = "push"
+--   show (Call' addr) = "call " ++ (show addr)
+--   show (Return' addr) = "return " ++ (show addr)
+--   show (Print' str src) = "print " ++ "\"" ++ str ++ "\" " ++ (show src)
+--   show (Halt') = "halt"
 
 
-showICProgram :: IC_Program -> IO ()
-showICProgram p = (showProgram' p 0)
-                where
-                   showProgram' [] _        = putStr "\n"
-                   showProgram' (i:is) addr = do putStrLn $ (show addr) ++ ": " ++ (show i)
-                                                 showProgram' is (addr+1)
+-- showICProgram :: IC_Program -> IO ()
+-- showICProgram p = (showProgram' p 0)
+--                 where
+--                    showProgram' [] _        = putStr "\n"
+--                    showProgram' (i:is) addr = do putStrLn $ (show addr) ++ ": " ++ (show i)
+--                                                  showProgram' is (addr+1)
 
 
 

@@ -13,10 +13,9 @@ type LocalScope = Map String Integer
 
 type State = Map String ([String], Stmt, [LocalScope], [String])
 
-
+test14'' = P [Def "main" [] (Block [Assign "k" (Val 0),While (Lt (Var "k") (Val 8)) (Block [Assign "k" (Plus (Var "k") (Val 1)),IfElse (Lt (Var "k") (Val 4)) (Block [Continue]) (Block [If (Gt (Var "k") (Val 6)) (Block [Break])]),Print (Var "k")]),Ret (Val 0)])]
 
 tt = P [Def "main" [] (Block [Assign "x" (Val 3),Ret (Val 3),Print (Plus (Var "x") (Val 1))])]
-
 
 
 testNegate = (P [Def "main" [] (Block [Assign "x" (Val 6),Assign "y" (Val 8),Assign "z" (Plus (Plus (Div (Mult (Var "x") (Var "y")) (Val 3)) (VarNeg "x")) (Mult (Val 2) (Var "y"))),Assign "w" (Sub (Var "z") (Mod (Var "x") (Sub (Var "x") (Val 2)))),Print (Var "w"),Ret (Val 0)])])
@@ -35,15 +34,14 @@ testMultCall = P [Def "succ" ["x"] (Block [Ret (Plus (Var "x") (Val 1))]),Def "m
 testNestedCall =P [Def "succ" ["x"] (Block [Ret (Plus (Var "x") (Val 1))]),Def "main" [] (Block [Assign "a" (Val 5),Assign "z" (Call "succ" [Call "succ" [Call "succ" [Var "a"]]]),Print (Var "z"),Ret (Val 0)])]
 testFuncsCallFuncs=P [Def "succ" ["x"] (Block [Ret (Plus (Var "x") (Val 1))]),Def "times2" ["x"] (Block [Ret (Mult (Var "x") (Val 2))]),Def "f" ["y"] (Block [Assign "z" (Call "succ" [Var "y"]),Assign "y" (Call "times2" [Var "z"]),Ret (Var "y")]),Def "main" [] (Block [Assign "z" (Call "f" [Val 10]),Print (Var "z"),Ret (Val 0)])]
 testGCD = P [Def "gcd" ["b"] (Block [Assign "a" (Val 2854),While (NEq (Var "b") (Val 0)) (Block [Assign "t" (Var "b"),Assign "b" (Mod (Var "a") (Var "b")),Assign "a" (Var "t")]),Ret (Var "a")]),Def "main" [] (Block [Assign "m" (Val 264),Assign "res" (Call "gcd" [Var "m"]),Print (Var "res"),Ret (Val 0)])]
-
+test13Lazy = P [Def "f" ["n"] (Block [Print (Var "n"),Ret (Var "n")]),Def "main" [] (Block [Assign "k" (Val 1),If (Or (Lt (Call "f" [Var "k"]) (Val 2)) (Gt (Call "f" [Plus (Var "k") (Val 1)]) (Val 10))) (Block [Assign "k" (Plus (Var "k") (Val 2)),Print (Var "k")]),Assign "k" (Val 10),If (And (Lt (Call "f" [Var "k"]) (Val 2)) (Gt (Call "f" [Plus (Var "k") (Val 1)]) (Val 0))) (Block [Assign "k" (Plus (Var "k") (Val 2)),Print (Var "k")]),Ret (Val 0)])]
 
 test12 = P [Def "Q" ["n"] (Block [IfElse (LtEq (Var "n") (Val 2)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 1)])]) (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 2)])]))])]),Def "main" [] (Block [Assign "k" (Val 1),While (Lt (Var "k") (Val 20)) (Block [Assign "q" (Call "Q" [Var "k"]),Print (Var "q"),Assign "k" (Plus (Var "k") (Val 1))]),Ret (Val 0)])]
 
 
 
 
-testingRecursion =  [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 15)]) (Block [Assign "x" (Call "fib" [Sub (Var "x") (Val 1)]),Ret (Var "x")])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 15]),Print (Var "k"),Ret (Val 0)])]
-
+testingRecursion = P [Def "fib" ["x"] (Block [If (Eq (Var "x") (Val 0)) (Block [Ret (Val 0)]),IfElse (Eq (Var "x") (Val 1)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 15]),Print (Var "k"),Ret (Val 0)])]
 testingMultiArgs = P [Def "f" ["x","y"] (Block [Ret (Plus (Div (Var "x") (Var "y")) (Val 2))]),Def "main" [] (Block [Assign "x" (Call "f" [Val 3,Val 3]), Print (Var "x"), Ret (Val 0)])]
 
 -- testingRecCallInRet = [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 3]),Print (Var "k"),Ret (Val 0)])]
@@ -117,7 +115,7 @@ eval (P code) = let state = createState code in
 
 
 evalProgram :: (String, [Stmt]) -> StatefulUnsafe State StmtRet
-evalProgram (funcName, []) = return Nil
+evalProgram (funcName, []) = return RetPass
 evalProgram (funcName, (head:tail)) = do res1 <- evalStmt (funcName, head)
                                          -- traceShowM (head:tail)
                                          -- traceShowM $ (show res1) ++ " in prgram"
@@ -152,34 +150,45 @@ evalStmt (funcName, Ret expr) = do res <- evalExpr (funcName, expr)
                                                                  -- traceShowM $ "returning " ++ (show updateLocal) 
                                                                  return $RetVal res
 evalStmt (funcName, (While expr code)) = do cond <- evalExpr (funcName, expr)
-                                            traceShowM $ "condition for while " ++ (show cond)
+                                            --traceShowM $ "condition for while " ++ (show cond)
                                             if cond /= 0
                                                 then do res <- evalStmt (funcName, code)
+                                                        --traceShowM res
                                                         case res of
                                                           RetBreak -> return RetPass
                                                           RetCont -> evalStmt (funcName, While expr code)
                                                           otherwise -> evalStmt (funcName, While expr code)
                                                 else return RetPass
 evalStmt (funcName, (If expr code)) = do cond <- evalExpr (funcName, expr)
-                                         --traceShowM $ "what is code " ++ (show code)
+                                         --traceShowM $ "cond for if " ++ (show cond)
                                          if cond /= 0
-                                             then do evalStmt (funcName, code)
-                                                     return RetPass
+                                             then do res <- evalStmt (funcName, code)
+                                                     case res of 
+                                                       RetVal i -> do return $ RetVal i 
+                                                       Nil -> do return Nil
+                                                       RetBreak -> do return RetBreak 
+                                                       RetCont -> do return RetCont
+                                                       RetPass -> do return RetPass
                                              else return RetPass
 evalStmt (funcName, (IfElse expr blockT blockF)) = do cond <- evalExpr (funcName, expr)
+                                                      --traceShowM $"Condition of ifelse " ++ (show cond)
                                                       if cond /= 0
                                                         then do res <- evalStmt (funcName, blockT)
-                                                                -- t       raceShowM $ "Result of if block " ++ (show res)
+                                                                --traceShowM $ "Result of if block " ++ (show res)
                                                                 case res of 
                                                                   RetVal i -> do return $ RetVal i 
                                                                   Nil -> do return Nil
-                                                                  otherwise -> do return RetPass 
+                                                                  RetBreak -> do return RetBreak 
+                                                                  RetCont -> do return RetCont
+                                                                  RetPass -> do return RetPass
                                                         else do res <- evalStmt (funcName, blockF)
-                                                                -- traceShowM $ "Result of else block " ++ (show res)
+                                                                --traceShowM $ "Result of else block " ++ (show res)
                                                                 case res of 
                                                                   RetVal i -> do return $ RetVal i 
                                                                   Nil -> do return Nil
-                                                                  otherwise -> do return RetPass 
+                                                                  RetBreak -> do return RetBreak 
+                                                                  RetCont -> do return RetCont
+                                                                  RetPass -> do return RetPass
 evalStmt (funcName, (Assign var val)) = do res <- evalExpr (funcName, val)
                                            -- traceShowM $ (show res) ++ " assigning function"
                                            state <- get 
@@ -199,15 +208,23 @@ evalStmt (funcName, (Assign var val)) = do res <- evalExpr (funcName, val)
                                                                                -- traceShowM state'
                                                                                return RetPass
 evalStmt (funcName, (Print expr)) = do res <- evalExpr (funcName, expr)
-                                       --traceShowM res
-                                       state <- get 
-                                       let funcState = Map.lookup "main" state in 
-                                        case funcState of
-                                          Nothing -> err "Function does not exist"
-                                          Just (p,a,lc,strLst) -> let newPrint = strLst ++ [(show res)] 
-                                                                      newState = Map.insert "main" (p,a,lc,newPrint) state
-                                                                  in do put newState
-                                                                        return RetPass
+                                       case expr of 
+                                        Var name -> do state <- get 
+                                                       let funcState = Map.lookup "main" state in 
+                                                        case funcState of
+                                                          Nothing -> err "Function does not exist"
+                                                          Just (p,a,lc,strLst) -> let newPrint = strLst ++ [name ++ " = " ++ (show res)] 
+                                                                                      newState = Map.insert "main" (p,a,lc,newPrint) state
+                                                                                  in do put newState
+                                                                                        return RetPass
+                                        otherwise -> do state <- get 
+                                                        let funcState = Map.lookup "main" state in 
+                                                         case funcState of
+                                                           Nothing -> err "Function does not exist"
+                                                           Just (p,a,lc,strLst) -> let newPrint = strLst ++ ["Not a variable " ++ (show res)] 
+                                                                                       newState = Map.insert "main" (p,a,lc,newPrint) state
+                                                                                   in do put newState
+                                                                                         return RetPass
 evalStmt (funcName, (Line expr)) = do res <- evalExpr (funcName, expr)
                                       return RetPass
 evalStmt (funcName, (Break)) = return RetBreak

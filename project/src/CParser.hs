@@ -6,6 +6,42 @@ import ParserMonad
 import Debug.Trace
 
 
+test14True = concat [
+   "def main() {                  ",
+   "    k = 0;                    ",
+   "    while( 2 > 1 ) {          ",
+   "        k = k + 1;            ",
+   "        if(k < 4) {           ",
+   "           continue;          ",
+   "        }                     ",
+   "        else {                ",
+   "           if( k > 6) {       ",
+   "              break;          ",
+   "           }                  ",
+   "        }                     ",
+   "        print k;              ",
+   "    }                         ",
+   "    return 0;                 ",
+   "}                             "  ]
+
+
+testIfInsideElseIf = concat [
+  "def main() {",
+  "   k = 0;",
+  "   while(k<10){",
+  "     k = k + 1;",
+  "     if(k<3){",
+  "       continue;",
+  "     }    ",
+  "     else{",
+  "       if(k>5){",
+  "         break;",
+  "        }",
+  "      }",
+  "     }",
+  "   print k;",
+  "   return 0;",
+  "   }"]
 
 test = "def main(){x=0;while(1){x=x+1; if(x==10){break;}}print x; return x;}"
 
@@ -117,10 +153,13 @@ ifParser = do token $ literal "if"
 
 ifElseParser :: Parser Stmt
 ifElseParser = do token $ literal "if"
+                  traceShowM "started parser"
                   token $ literal "("
                   expr <- orParser
+                  traceShowM expr
                   token $ literal ")"
                   block <- blockParser
+                  traceShowM block
                   token $ literal "else"
                   blockF <- blockParser 
                   return $ IfElse expr block blockF
@@ -437,9 +476,32 @@ test12 = concat [
    "    return 0;                     ",
    "}                    "]
 
+
+test13True = concat [
+   "def f(n) {                    ",
+   "     print n; ",
+   "     return n; ",
+   "}                    ",
+   "def main() {                    ",
+   "    k = 1;                    ",
+   "    if(f(k)<2 ||  f(k+1) > 10) {                    ",
+   "        k = k + 2; ",
+   "        print k;      ",
+   "    }                    ",
+   "    k = 10; ",
+   "    if(f(k)<2 &&  f(k+1) > 0) {                    ",
+   "        k = k + 2; ",
+   "        print k;   ",
+   "    }                    ",
+   "    return 0;                     ",
+   "}                    "]
+
 test13 = concat [
     "def fib(x){",
-    "   if(x == 1 || x == 0){",
+    "   if(x == 0){    ",
+    "       return 0;",
+    "   }",
+    "   if(x == 1){",
     "     return 1;",
     "   }",
     "   else{",
