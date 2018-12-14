@@ -70,22 +70,14 @@ runStmt a = compileStmt a [] emptyBP temps Map.empty
 --         ic6 = backPatch (bl ++ fl) (length ic5)
 --         ic7 = backPatch cl start ic6
 
+
 -- (Var' "_t8",[Assign' (Var' "_t0") (Val' 2),Assign' (Var' "_t1") (Val' 2),Plus' (Var' "_t2") (Var' "_t0") (Var' "_t1"),Assign' (Var' "_t3") (Val' 3),Assign' (Var' "_t4") (Val' 1),Assign' (Var' "_t5") (Val' 1),Minus' (Var' "_t6")
 -- (Var' "_t4") (Var' "_t5"),Div' (Var' "_t7") (Var' "_t3") (Var' "_t6"),Ge' (Var' "_t8") (Var' "_t2") (Var' "_t7"),Bzero' (Var' "_t8") 0,Jump' 0],([10],[9],[],[]),[Var' "_t9"])
 
 
 
 
-x = [Assign' (Var' "_t0") (Val' 2),
-     Assign' (Var' "_t1") (Val' 2),
-     Plus' (Var' "_t2") (Var' "_t0") (Var' "_t1"),
-     Assign' (Var' "_t3") (Val' 3),
-     Assign' (Var' "_t4") (Val' 1),
-     Assign' (Var' "_t5") (Val' 1),
-     Minus' (Var' "_t6") (Var' "_t4") (Var' "_t5"),
-     Div' (Var' "_t7") (Var' "_t3") (Var' "_t6"),
-     Ge' (Var' "_t8") (Var' "_t2") (Var' "_t7"),
-     Bzero' (Var' "_t8") 0,Jump' 0]
+x = [Assign' (Var' "_t0") (Val' 2),Assign' (Var' "_t1") (Val' 2),Plus' (Var' "_t2") (Var' "_t0") (Var' "_t1"),Assign' (Var' "_t3") (Val' 3),Assign' (Var' "_t4") (Val' 1),Assign' (Var' "_t5") (Val' 1),Minus' (Var' "_t6")(Var' "_t4") (Var' "_t5"),Div' (Var' "_t7") (Var' "_t3") (Var' "_t6"),Lt' (Var' "_t8") (Var' "_t2") (Var' "_t7"),Bzero' (Var' "_t8") 0, Jump' 0]
 lst = [10]
 line = 12
 
@@ -93,19 +85,19 @@ test = backPatch lst line x
 
 
 
-testExpr = run (GtEq (Plus (Val 2) (Val 2)) (Div (Val 3) (Sub (Val 1) (Val 1))))
-testPatch = run ((And (Gt (Val 2) (Val 1)) (Lt (Val 1) (Val 2))))
+testExpr = run (Lt (Plus (Val 2) (Val 2)) (Div (Val 3) (Sub (Val 1) (Val 1))))
+testPatch = run (Not (And (Gt (Val 2) (Val 1)) (Lt (Val 1) (Val 2))))
 testAssign = runStmt (Assign "x" (Val 2))
 backPatch :: [Int] -> Int -> IC_Program -> IC_Program
 backPatch [] set ic = ic
 backPatch (x:xs) set ic = 
-    let step = ic !! (x) in 
+    let step = ic !! (x-1) in 
         case step of
             (Jump' _) -> let 
-                            newIc = (take (x) ic) ++ [Jump' set] ++ (drop (x+1) ic)
+                            newIc = (take (x-1) ic) ++ [Jump' set] ++ (drop (x) ic)
                          in backPatch xs set newIc
             (Bzero' t _) -> let
-                                newIc = (take (x) ic) ++ [Bzero' t set] ++ (drop (x+1) ic) 
+                                newIc = (take (x-1) ic) ++ [Bzero' t set] ++ (drop (x) ic) 
                             in backPatch xs set newIc
             otherwise -> backPatch xs set ic
    
@@ -127,8 +119,23 @@ compileStmt (Line expr) ic bp temp g = (ic, bp, temp)
 compileStmt (Ret expr) ic bp temp g = 
     let (loc, ic2, bp2, temp2) = compileExpr expr ic bp temp g
         ic3 = ic2 ++ [Return' loc]
-    in (ic3, bp2, [head temp2])
+    in (ic3, bp2, temp2)
+compileStmt (Def funcName params body) ic bp temp g = 
+    let (ic2,bp2,temp2) = compileStmt body ic bp temp (Map.insert funcName ((length ic),params) g)
+    in (ic2, bp2, [head temp2])
+compileStmt (Break) ic (tL,fL,cL,bL) temp g = 
+    let ic2 = ic ++ [Jump' 0]
+        b = [length ic2]
+    in (ic2, (tL,fL,cL,(bL++b)),[head temp])
+compileStmt (Continue) ic (tL,fL,cL,bL) temp g = 
+    let ic2 = ic ++ [Jump' 0]
+        c = [length ic2]
+    in (ic2, (tL,fL,(cL++c),bL),[head temp])
+compileStmt (While cond body) ic temp bp g =
+    let start = length ic
+        
 
+testBLPatch = backPatch [1] 10 [Jump' 0]
 
 
 compileExpr :: Expr -> IC_Program -> BackPatch -> Temp -> Global -> (Op,IC_Program,BackPatch,Temp)
@@ -151,56 +158,56 @@ compileExpr (Mod x y) ic bp temp g = let (locl, icL, bpl, templ) = compileExpr x
 compileExpr (Lt x y) ic bp temp g = 
     let (locx, ic2, bpl, templ) = compileExpr x ic bp temp g
         (locy, ic3, bpr, (t:rest)) = compileExpr y ic2 bpl templ g
-        ic4 = ic3 ++  [Lt' t locx locy]
+        ic4 = ic3 ++  [Lt' t locx locy] ++ [(Bzero' t 0)]
         fLoc = length ic4
+        ic5 = ic4 ++ [(Jump' 0)]
         tLoc = fLoc + 1
-        ic5 = ic4 ++ [(Bzero' t 0), (Jump' 0)]
-    in (t, (ic5), ([tLoc], [fLoc], [],[]), [head rest])
+    in (t, (ic5), ([tLoc], [fLoc], [],[]), rest)
 compileExpr (LtEq x y) ic bp temp g = 
     let (locx, ic2, bpl, templ) = compileExpr x ic bp temp g
         (locy, ic3, bpr, (t:rest)) = compileExpr y ic2 bpl templ g
-        ic4 = ic3 ++  [Le' t locx locy]
+        ic4 = ic3 ++  [Le' t locx locy] ++ [(Bzero' t 0)]
         fLoc = length ic4
+        ic5 = ic4 ++ [(Jump' 0)]
         tLoc = fLoc + 1
-        ic5 = ic4 ++ [Bzero' t 0, Jump' 0]
     in (t, (ic5), ([tLoc], [fLoc], [],[]), rest)
 compileExpr (Eq x y) ic bp temp g = 
     let (locx, ic2, bpl, templ) = compileExpr x ic bp temp g
         (locy, ic3, bpr, (t:rest)) = compileExpr y ic2 bpl templ g
-        ic4 = ic3 ++  [Equal' t locx locy]
+        ic4 = ic3 ++  [Equal' t locx locy] ++ [(Bzero' t 0)]
         fLoc = length ic4
+        ic5 = ic4 ++ [(Jump' 0)]
         tLoc = fLoc + 1
-        ic5 = ic4 ++ [Bzero' t 0, Jump' 0]
     in (t, (ic5), ([tLoc], [fLoc], [],[]), rest)
 compileExpr (NEq x y) ic bp temp g = 
     let (locx, ic2, bpl, templ) = compileExpr x ic bp temp g
         (locy, ic3, bpr, (t:rest)) = compileExpr y ic2 bpl templ g
-        ic4 = ic3 ++  [NotEq' t locx locy]
+        ic4 = ic3 ++  [NotEq' t locx locy] ++ [(Bzero' t 0)]
         fLoc = length ic4
+        ic5 = ic4 ++ [(Jump' 0)]
         tLoc = fLoc + 1
-        ic5 = ic4 ++ [Bzero' t 0, Jump' 0]
     in (t, (ic5), ([tLoc], [fLoc], [],[]), rest)
 compileExpr (Gt x y) ic bp temp g = 
     let (locx, ic2, bpl, templ) = compileExpr x ic bp temp g
         (locy, ic3, bpr, (t:rest)) = compileExpr y ic2 bpl templ g
-        ic4 = ic3 ++  [Gt' t locx locy]
+        ic4 = ic3 ++  [Gt' t locx locy] ++ [(Bzero' t 0)]
         fLoc = length ic4
+        ic5 = ic4 ++ [(Jump' 0)]
         tLoc = fLoc + 1
-        ic5 = ic4 ++ [Bzero' t 0, Jump' 0]
     in (t, (ic5), ([tLoc], [fLoc], [],[]), rest)
 compileExpr (GtEq x y) ic bp temp g = 
     let (locx, ic2, bpl, templ) = compileExpr x ic bp temp g
         (locy, ic3, bpr, (t:rest)) = compileExpr y ic2 bpl templ g
-        ic4 = ic3 ++  [Ge' t locx locy]
+        ic4 = ic3 ++  [Ge' t locx locy] ++ [(Bzero' t 0)]
         fLoc = length ic4
-        tLoc = traceShow (fLoc) fLoc + 1
-        ic5 = ic4 ++ [Bzero' t 0, Jump' 0]
+        ic5 = ic4 ++ [(Jump' 0)]
+        tLoc = fLoc + 1
     in (t, (ic5), ([tLoc], [fLoc], [],[]), rest)
 compileExpr (And x y) ic bp temp g =
     let (_, ic2, (tL,fL,bL,cL), temp2) = compileExpr x ic bp temp g
         (_, ic3, (tL2,fL2,bL2,cL2), temp3) = compileExpr y ic2 bp temp2 g 
         ic4 = backPatch tL (length ic2) ic3
-    in (Var' "", ic4,(tL2,(fL++fL2),bL2,cL2),temp3)
+    in (Var' "", ic4,(tL2,(fL++fL2),bL2,cL2), temp3)
 compileExpr (Or x y) ic bp temp g =
     let (_, ic2, (tL,fL,bL,cL), temp2) = compileExpr x ic bp temp g
         (_, ic3, (tL2,fL2,bL2,cL2), temp3) = compileExpr y ic2 bp temp2 g 
@@ -214,5 +221,8 @@ compileExpr (Not x) ic bp temp g =
 
 -- varLookUp
 compileExpr (Var var) ic bp temp g =
-    ((Var' var), ic, bp, [head temp])
+    ((Var' var), ic, bp, temp)
+compileExpr (VarNeg var) ic bp temp g = 
+    let (loc,ic2,bp2,temp2) = compileExpr (Mult (Val (-1)) (Var var)) ic bp temp g
+    in (loc,ic2,bp2,[head temp2])
 -- will do function call soon

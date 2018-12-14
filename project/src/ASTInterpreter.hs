@@ -18,7 +18,7 @@ test14'' = P [Def "main" [] (Block [Assign "k" (Val 0),While (Lt (Var "k") (Val 
 tt = P [Def "main" [] (Block [Assign "x" (Val 3),Ret (Val 3),Print (Plus (Var "x") (Val 1))])]
 
 
-testNegate = (P [Def "main" [] (Block [Assign "x" (Val 6),Assign "y" (Val 8),Assign "z" (Plus (Plus (Div (Mult (Var "x") (Var "y")) (Val 3)) (VarNeg "x")) (Mult (Val 2) (Var "y"))),Assign "w" (Sub (Var "z") (Mod (Var "x") (Sub (Var "x") (Val 2)))),Print (Var "w"),Ret (Val 0)])])
+--testNegate = (P [Def "main" [] (Block [Assign "x" (Val 6),Assign "y" (Val 8),Assign "z" (Plus (Plus (Div (Mult (Var "x") (Var "y")) (Val 3)) (VarNeg "x")) (Mult (Val 2) (Var "y"))),Assign "w" (Sub (Var "z") (Mod (Var "x") (Sub (Var "x") (Val 2)))),Print (Var "w"),Ret (Val 0)])])
 test = [Def "main" [] (Block [Ret (Val 1)])]
 test' = P [Def "f" ["x"] (Block [Ret (Mult (Var "x") (Val 10))]),Def "main" [] (Block [Assign "x" (Val 10),Assign "x" (Call "f" [Var "x"]), Print (Var "x")])]
 test'' = P [Def "f" [] (Block [Ret (Val 100)]),Def "main" [] (Block [Assign "x" (Call "f" []),Print (Var "x"),Ret (Var "x")])]
@@ -44,6 +44,8 @@ test12 = P [Def "Q" ["n"] (Block [IfElse (LtEq (Var "n") (Val 2)) (Block [Ret (V
 testingRecursion = P [Def "fib" ["x"] (Block [If (Eq (Var "x") (Val 0)) (Block [Ret (Val 0)]),IfElse (Eq (Var "x") (Val 1)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 15]),Print (Var "k"),Ret (Val 0)])]
 testingMultiArgs = P [Def "f" ["x","y"] (Block [Ret (Plus (Div (Var "x") (Var "y")) (Val 2))]),Def "main" [] (Block [Assign "x" (Call "f" [Val 3,Val 3]), Print (Var "x"), Ret (Val 0)])]
 
+
+testingUMin = P [Def "main" [] (Block [Assign "x" (Val 1),Assign "x" (UnaryMinus (Plus (Var "x") (Val 1))),Print (Var "x"),Ret (Var "x")])]
 -- testingRecCallInRet = [Def "fib" ["x"] (Block [IfElse (Or (Eq (Var "x") (Val 1)) (Eq (Var "x") (Val 0))) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "k" (Call "fib" [Val 3]),Print (Var "k"),Ret (Val 0)])]
 
 -- testQ = P [Def "Q" ["n"] (Block [IfElse (LtEq (Var "n") (Val 2)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 1)])]) (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 2)])]))])]),Def "main" [] (Block [Assign "k" (Val 1),While (LtEq (Var "k") (Val 20)) (Block [Assign "q" (Call "Q" [Var "k"]),Print (Var "q"),Assign "k" (Plus (Var "k") (Val 1))]),Ret (Val 0)])
@@ -312,13 +314,15 @@ evalExpr (name, (Not expr)) = do x <- evalExpr (name, expr)
                                  case x of
                                     0 -> return 1
                                     _ -> return 0
-evalExpr (name, (VarNeg var)) = do cState <- get
-                                   let local = getLocalScope name cState in 
-                                    case local of 
-                                      Nothing -> err "Function does not exist"
-                                      Just a -> case Map.lookup var a of
-                                                  Just val -> do return $ -val
-                                                  Nothing -> err "Variable does not exist"
+-- evalExpr (name, (VarNeg var)) = do cState <- get
+--                                    let local = getLocalScope name cState in 
+--                                     case local of 
+--                                       Nothing -> err "Function does not exist"
+--                                       Just a -> case Map.lookup var a of
+--                                                   Just val -> do return $ -val
+--                                                   Nothing -> err "Variable does not exist"
+evalExpr (name, (UnaryMinus expr)) = do res <- evalExpr (name, expr)
+                                        return $ 0-res
 evalExpr (name, (Var var)) = do cState <- get
                                 --traceShowM $ "Looking up variable " ++ var
                                 let local = getLocalScope name cState in 

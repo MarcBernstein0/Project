@@ -5,17 +5,17 @@ data Program = P [Stmt]
                deriving Show
 
 
-data Stmt = Def String [String] Stmt --done
-          | While Expr Stmt --done 
+data Stmt = Def String [String] Stmt --done done
+          | While Expr Stmt --done  
           | Block [Stmt] --done 
           | If Expr Stmt --done
           | IfElse Expr Stmt Stmt --done
           | Assign String Expr --done done
-          | Line Expr --done
-          | Ret Expr --done
+          | Line Expr --done done
+          | Ret Expr --done done
           | Print Expr --done done
-          | Break --done
-          | Continue --done
+          | Break --done done
+          | Continue --done done
           deriving Show
 
 
@@ -36,8 +36,8 @@ data Expr = Val Integer --done done
           | Or Expr Expr --done done
           | Not Expr --done done
 
-          | Var String --done
-          | VarNeg String
+          | Var String --done done
+          | UnaryMinus Expr --done done
           | Call String [Expr] --done
           deriving Show
 

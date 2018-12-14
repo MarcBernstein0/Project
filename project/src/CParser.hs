@@ -97,17 +97,25 @@ notParser = (do token $ literal "!"
                 return $ Not res) <||> atoms
 
 atoms :: Parser Expr
-atoms = ints <||> funcCall  <||> varsNeg <||> vars <||> parens
+atoms = ints <||> funcCall  <||> unaryMinus <||> vars <||> parens
 
 ints :: Parser Expr 
 ints = do res <- intParser
           return $ Val res
 
 
-varsNeg :: Parser Expr
-varsNeg = (do token $ literal "-"
-              res <- varParser
-              return $ VarNeg res) 
+-- varsNeg :: Parser Expr
+-- varsNeg = (do token $ literal "-"
+--               res <- varParser 
+--               return $ VarNeg res) 
+
+unaryMinus :: Parser Expr
+unaryMinus = (do token $ literal "-"
+                 expr <- token $ orParser
+                 return $ UnaryMinus expr) <||>
+              (do token $ literal "-"
+                  expr <- token $ vars
+                  return $ UnaryMinus expr)
 
 vars :: Parser Expr
 vars = do var <- varParser
