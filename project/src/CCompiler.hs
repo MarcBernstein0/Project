@@ -41,6 +41,7 @@ temps = [Var' ("_t" ++ (show n)) | n <- [0,1..]]
 
 
 run a = compileExpr a [] emptyBP temps Map.empty
+runStmt a = compileStmt a [] emptyBP temps Map.empty
 
 --going to need to have a global mapping for all the function localtions and parameters, Map String (Int, [String])
 
@@ -74,6 +75,7 @@ run a = compileExpr a [] emptyBP temps Map.empty
 
 
 
+
 x = [Assign' (Var' "_t0") (Val' 2),
      Assign' (Var' "_t1") (Val' 2),
      Plus' (Var' "_t2") (Var' "_t0") (Var' "_t1"),
@@ -91,28 +93,41 @@ test = backPatch lst line x
 
 
 
---test = run (GtEq (Plus (Val 2) (Val 2)) (Div (Val 3) (Sub (Val 1) (Val 1))))
-testPatch = run (And (Gt (Val 2) (Val 1)) (Lt (Val 1) (Val 2)))
+testExpr = run (GtEq (Plus (Val 2) (Val 2)) (Div (Val 3) (Sub (Val 1) (Val 1))))
+testPatch = run ((And (Gt (Val 2) (Val 1)) (Lt (Val 1) (Val 2))))
+testAssign = runStmt (Assign "x" (Val 2))
 backPatch :: [Int] -> Int -> IC_Program -> IC_Program
-backPatch [] set [] = []
-backPatch (x:xs) set [] = []
-backPatch [] set (step:rest) = step:rest
-backPatch (x:xs) set ((Bzero' t _):rest) = traceShow (t, rest) (Bzero' t set):(backPatch xs set rest)
-backPatch (x:xs) set ((Jump' _):rest) = traceShow (rest) (Jump' set):(backPatch xs set rest)
-backPatch (x:xs) set (step:rest) = step:(backPatch xs set rest)
---     let currentPlace = length ((Bzero' t current):rest)
---         test = traceShow currentPlace 
---     in 
---         if currentPlace == x 
---             then (Bzero' t set):(backPatch xs set rest)
---             else ((Bzero' t current):(backPatch xs set rest))
--- backPatch (x:xs) set ((Jump' current):rest) = 
---     let currentPlace = length ((Jump' current):rest) in 
---         if currentPlace == x 
---             then (Jump' set):(backPatch xs set rest)
---             else ((Jump' current):(backPatch xs set rest))
--- backPatch [] set (step:rest) = step:rest
+backPatch [] set ic = ic
+backPatch (x:xs) set ic = 
+    let step = ic !! (x) in 
+        case step of
+            (Jump' _) -> let 
+                            newIc = (take (x) ic) ++ [Jump' set] ++ (drop (x+1) ic)
+                         in backPatch xs set newIc
+            (Bzero' t _) -> let
+                                newIc = (take (x) ic) ++ [Bzero' t set] ++ (drop (x+1) ic) 
+                            in backPatch xs set newIc
+            otherwise -> backPatch xs set ic
+   
 
+
+compileStmt :: Stmt -> IC_Program -> BackPatch -> Temp -> Global -> (IC_Program, BackPatch, Temp)
+compileStmt (Assign var expr) ic bp temp g = 
+    let (loc, ic2, bp2, temp2) = compileExpr expr ic bp temp g
+        ic3 = ic2 ++ [Assign' (Var' var) loc]
+    in (ic3,bp2, temp2)
+compileStmt (Print expr) ic bp temp g =
+    let ((Var' loc), ic2, bp2, temp2) = compileExpr expr ic bp temp g
+    in case expr of 
+        Var name -> let ic3 = ic2 ++ [Print' (name ++ "= ") (Var' loc)] 
+                    in (ic3, bp2, temp2)
+        otherwise -> let ic3 = ic2 ++ [Print' (loc ++ "= ") (Var' loc)]
+                     in (ic3, bp2, temp2)
+compileStmt (Line expr) ic bp temp g = (ic, bp, temp)
+compileStmt (Ret expr) ic bp temp g = 
+    let (loc, ic2, bp2, temp2) = compileExpr expr ic bp temp g
+        ic3 = ic2 ++ [Return' loc]
+    in (ic3, bp2, [head temp2])
 
 
 
@@ -172,23 +187,32 @@ compileExpr (Gt x y) ic bp temp g =
         fLoc = length ic4
         tLoc = fLoc + 1
         ic5 = ic4 ++ [Bzero' t 0, Jump' 0]
-    in (t, (ic5), ([tLoc], [fLoc], [],[]), [head rest])
+    in (t, (ic5), ([tLoc], [fLoc], [],[]), rest)
 compileExpr (GtEq x y) ic bp temp g = 
     let (locx, ic2, bpl, templ) = compileExpr x ic bp temp g
         (locy, ic3, bpr, (t:rest)) = compileExpr y ic2 bpl templ g
         ic4 = ic3 ++  [Ge' t locx locy]
         fLoc = length ic4
-        tLoc = fLoc + 1
+        tLoc = traceShow (fLoc) fLoc + 1
         ic5 = ic4 ++ [Bzero' t 0, Jump' 0]
-    in (t, (ic5), ([tLoc], [fLoc], [],[]), [head rest])
+    in (t, (ic5), ([tLoc], [fLoc], [],[]), rest)
 compileExpr (And x y) ic bp temp g =
     let (_, ic2, (tL,fL,bL,cL), temp2) = compileExpr x ic bp temp g
         (_, ic3, (tL2,fL2,bL2,cL2), temp3) = compileExpr y ic2 bp temp2 g 
         ic4 = backPatch tL (length ic2) ic3
-    in (Var' "", ic4,(tL2,(fL++fL2),bL2,cL2),[head temp3])
+    in (Var' "", ic4,(tL2,(fL++fL2),bL2,cL2),temp3)
+compileExpr (Or x y) ic bp temp g =
+    let (_, ic2, (tL,fL,bL,cL), temp2) = compileExpr x ic bp temp g
+        (_, ic3, (tL2,fL2,bL2,cL2), temp3) = compileExpr y ic2 bp temp2 g 
+        ic4 = backPatch fL (length ic2) ic3
+    in (Var' "", ic4,((tL++tL2),fL2,bL2,cL2),temp3)
+compileExpr (Not x) ic bp temp g =
+    let (_, ic2, (tL,fL,bL,cL), temp2) = compileExpr x ic bp temp g
+        -- (_, ic3, (tL2,fL2,bL2,cL2), temp3) = compileExpr y ic2 bp temp2 g 
+        -- ic3 = backPatch tL (length ic) ic2
+    in (Var' "", ic2,(fL,tL,bL,cL),[head temp2])
 
-
--- compileExpr (And x y) = undefined
--- compileExpr (Or x y) = undefined
--- compileExpr (Not x) = undefined
-
+-- varLookUp
+compileExpr (Var var) ic bp temp g =
+    ((Var' var), ic, bp, [head temp])
+-- will do function call soon

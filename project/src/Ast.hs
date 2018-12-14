@@ -10,31 +10,31 @@ data Stmt = Def String [String] Stmt --done
           | Block [Stmt] --done 
           | If Expr Stmt --done
           | IfElse Expr Stmt Stmt --done
-          | Assign String Expr --done
+          | Assign String Expr --done done
           | Line Expr --done
           | Ret Expr --done
-          | Print Expr --done 
+          | Print Expr --done done
           | Break --done
           | Continue --done
           deriving Show
 
 
 
-data Expr = Val Integer --done
-          | Plus Expr Expr --done
-          | Sub Expr Expr --done
-          | Mult Expr Expr --done
-          | Div Expr Expr --done
-          | Mod Expr Expr --done
-          | Eq Expr Expr --done
-          | NEq Expr Expr --done
-          | Lt Expr Expr --done
-          | LtEq Expr Expr --done
-          | Gt Expr Expr --done
-          | GtEq Expr Expr --done
-          | And Expr Expr --done
-          | Or Expr Expr --done
-          | Not Expr --done
+data Expr = Val Integer --done done
+          | Plus Expr Expr --done done
+          | Sub Expr Expr --done done
+          | Mult Expr Expr --done done
+          | Div Expr Expr --done done
+          | Mod Expr Expr --done done
+          | Eq Expr Expr --done done
+          | NEq Expr Expr --done done
+          | Lt Expr Expr --done done
+          | LtEq Expr Expr --done done
+          | Gt Expr Expr --done done
+          | GtEq Expr Expr --done done
+          | And Expr Expr --done done
+          | Or Expr Expr --done done
+          | Not Expr --done done
 
           | Var String --done
           | VarNeg String

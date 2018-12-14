@@ -84,9 +84,15 @@ run program = let res = run' program in
                   (Error str,_) -> putStrLn str
                   (Ok output,_) -> mapM_ putStrLn $ output
 
+eval :: Program -> [String]
+eval program = let res = run' program in
+                  case res of
+                    (Error str,_) -> []
+                    (Ok output,_) -> output
+
 
 run' :: Program -> (Unsafe [String], State)
-run' program = r (eval program) Map.empty
+run' program = r (eval' program) Map.empty
 
 
 run'' :: (String, [Expr]) -> (Unsafe [Integer], State)
@@ -96,19 +102,19 @@ run'' (name, a) = r (evalArgs (name, a)) Map.empty
 run''' :: (String , Expr) -> (Unsafe Integer, State)
 run''' (name, a) = r (evalExpr (name, a)) (createState $ [Def "foo" ["x","y"] (Block [Ret (Plus (Var "x") (Var "y"))])])
 
-eval :: Program -> StatefulUnsafe State [String]
-eval (P code) = let state = createState code in
-                  do put state
-                     let start = Map.lookup "main" state in
-                      case start of
-                        Nothing -> err "No main function"
-                        Just (p,a,l,str) -> do res <- evalProgram ("main",[a])
-                                               --traceShowM $ "result of program " ++ (show res)
-                                               newState <- get
-                                               let start = Map.lookup "main" newState in
-                                                case start of
-                                                  Nothing -> err "No main function"
-                                                  Just (p,a,l,str) -> do return str
+eval' :: Program -> StatefulUnsafe State [String]
+eval' (P code) = let state = createState code in
+                   do put state
+                      let start = Map.lookup "main" state in
+                       case start of
+                         Nothing -> err "No main function"
+                         Just (p,a,l,str) -> do res <- evalProgram ("main",[a])
+                                                --traceShowM $ "result of program " ++ (show res)
+                                                newState <- get
+                                                let start = Map.lookup "main" newState in
+                                                 case start of
+                                                   Nothing -> err "No main function"
+                                                   Just (p,a,l,str) -> do return str
 
 
 
