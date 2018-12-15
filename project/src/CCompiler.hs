@@ -6,7 +6,6 @@ import Data.Map as Map
 import Debug.Trace
 
 
-
 type Global = Map String (Int, [String])
 
 data Unsafe a = Ok a | Error String deriving Show
@@ -26,6 +25,10 @@ data Unsafe a = Ok a | Error String deriving Show
 -- compileStmt Break = undefined
 -- compileStmt Continue = undefined
 
+testPlzWork = [Def "main" [] (Block [Assign "x" (Val 6),Print (Var "x"),Assign "y" (Val 8),Print(Var "y"),Assign "z" (Plus (Div (Mult (Var "x") (Var "y")) (Val 3)) (UnaryMinus (Plus (Var"x") (Mult (Val 2) (Var "y"))))),Print (Var "z"),Assign "w" (Sub (Var "z") (Mod (Var "x") (Sub (Var "x") (Val 2)))),Print (Var "w"),Ret (Val 0)])]
+
+testWork = [Push',Call' 3,Halt',Assign' (Var' "_t0") (Val' 6),Assign' (Var' "x") (Var' "_t0"),Print' "x= " (Var' "x"),Assign' (Var' "_t1") (Val' 8),Assign' (Var' "y") (Var' "_t1"),Print' "y= " (Var' "y"),Times' (Var' "_t2") (Var' "x") (Var' "y"),Assign' (Var' "_t3") (Val' 3),Div' (Var' "_t4") (Var' "_t2") (Var' "_t3"),Assign' (Var' "_t5") (Val' 2),Times' (Var' "_t6") (Var' "_t5") (Var' "y"),Plus' (Var' "_t7") (Var' "x") (Var' "_t6"),Uminus' (Var' "_t8") (Var' "_t7"),Plus' (Var' "_t9") (Var' "_t4") (Var' "_t8"),Assign' (Var' "z") (Var' "_t9"),Print' "z= " (Var' "z"),Assign' (Var' "_t10") (Val' 2),Minus' (Var' "_t11") (Var' "x") (Var' "_t10"),Mod' (Var' "_t12") (Var' "x") (Var' "_t11"),Minus' (Var' "_t13") (Var' "z") (Var' "_t12"),Assign' (Var' "w") (Var' "_t13"),Print' "w= " (Var' "w"),Assign' (Var' "_t14") (Val' 0),Return' (Var' "_t14")]
+
 
 -- backPatch       TL     FL     CL     BL
 type BackPatch = ([Int], [Int], [Int], [Int])
@@ -37,7 +40,7 @@ emptyBP = ([],[],[],[])
 type Temp = [Op]
 
 temps :: Temp
-temps = [Var' ("_t" ++ (show n)) | n <- [0,1..100]]
+temps = [Var' ("_t" ++ (show n)) | n <- [0,1..50]]
 
 
 run a = compileExpr a [] emptyBP temps Map.empty
@@ -271,7 +274,7 @@ compileExpr (Not x) ic bp temp g =
     in (Var' "", ic2,(fL,tL,bL,cL), temp2, g2)
 compileExpr (UnaryMinus expr) ic bp temp g = 
     let (loc, ic2, bp2, (t:rest), g2) = compileExpr expr ic bp temp g
-        ic3 = ic2 ++ [Uminus' t loc]
+        ic3 = ic2 ++ [Minus' (Val' 0) loc]
     in (t, ic3, bp2, rest, g2)
 -- varLookUp
 compileExpr (Var var) ic bp temp g =
@@ -291,3 +294,8 @@ compileExpr (Call funcName (arg:argRest)) ic bp temp g =
     --         in (t,ic5,bp,temp2, g2)
 
 testFuncCall = [Def "x" ["y"] (Ret (Val 2)), Def "main" [] (Ret (Call "x" [(Val 2)]))]
+
+
+
+
+test1 = [Def "main" [] (Block [Assign "x" (Val 6),Assign "y" (Val 8),Assign "z" (Plus (Div(Mult (Var "x") (Var "y")) (Val 3)) (UnaryMinus (Plus (Var "x") (Mult (Val 2) (Var "y"))))),Assign "w" (Sub (Var "z") (Mod (Var "x") (Sub (Var "x") (Val 2)))),Print (Var "w"),Ret (Val 0)])]

@@ -4,8 +4,11 @@ module TestsProject where
 test1 = concat [
    "def main() {                       ",
    "   x = 6;                     ",
+   "   print x;",
    "   y = 8;                    ",
+   "   print y;",
    "   z = x * y / 3 + -x + 2 * y;                     ",
+   "   print z;",
    "   w = z - x % (x - 2);                    ",
    "   print w;                    ",
    "   return 0;                     ",
