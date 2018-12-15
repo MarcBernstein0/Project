@@ -6,9 +6,9 @@ data Program = P [Stmt]
 
 
 data Stmt = Def String [String] Stmt --done done
-          | While Expr Stmt --done  
-          | Block [Stmt] --done 
-          | If Expr Stmt --done
+          | While Expr Stmt --done done
+          | Block [Stmt] --done done
+          | If Expr Stmt --done done
           | IfElse Expr Stmt Stmt --done
           | Assign String Expr --done done
           | Line Expr --done done
