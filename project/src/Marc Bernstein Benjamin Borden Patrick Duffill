@@ -1,0 +1,5 @@
+Marc Bernstein Benjamin Borden Patrick Duffill
+CS 320 Final Project -- Fall 2018 Snyder
+
+The additional features that we have implemented are:
+	Being able to pass more than one parameter into a function, having it compile and return correct values.
