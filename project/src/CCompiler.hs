@@ -31,6 +31,11 @@ testPlzWork = [Def "main" [] (Block [Assign "x" (Val 6),Print (Var "x"),Assign "
 testWork = [Push',Call' 3,Halt',Assign' (Var' "_t0") (Val' 6),Assign' (Var' "x") (Var' "_t0"),Print' "x= " (Var' "x"),Assign' (Var' "_t1") (Val' 8),Assign' (Var' "y") (Var' "_t1"),Print' "y= " (Var' "y"),Times' (Var' "_t2") (Var' "x") (Var' "y"),Assign' (Var' "_t3") (Val' 3),Div' (Var' "_t4") (Var' "_t2") (Var' "_t3"),Assign' (Var' "_t5") (Val' 2),Times' (Var' "_t6") (Var' "_t5") (Var' "y"),Plus' (Var' "_t7") (Var' "x") (Var' "_t6"),Uminus' (Var' "_t8") (Var' "_t7"),Plus' (Var' "_t9") (Var' "_t4") (Var' "_t8"),Assign' (Var' "z") (Var' "_t9"),Print' "z= " (Var' "z"),Assign' (Var' "_t10") (Val' 2),Minus' (Var' "_t11") (Var' "x") (Var' "_t10"),Mod' (Var' "_t12") (Var' "x") (Var' "_t11"),Minus' (Var' "_t13") (Var' "z") (Var' "_t12"),Assign' (Var' "w") (Var' "_t13"),Print' "w= " (Var' "w"),Assign' (Var' "_t14") (Val' 0),Return' (Var' "_t14")]
 
 
+compile :: Program -> IC_Program
+compile (P program) = let res = runTrue program in (extract res)
+
+
+
 -- backPatch       TL     FL     CL     BL
 type BackPatch = ([Int], [Int], [Int], [Int])
 
@@ -76,7 +81,11 @@ test9 = [Def "succ" ["x"] (Block [Ret (Plus (Var "x") (Val 1))]),Def "main" [] (
 test10 = [Def "succ" ["x"] (Block [Ret (Plus (Var "x") (Val 1))]),Def "times2" ["x"] (Block [Ret (Mult (Var "x") (Val 2))]),Def "f" ["y"] (Block [Assign "z" (Call "succ" [Var "y"]),Assign "y" (Call "times2" [Var "z"]),Ret (Var "y")]),Def "main" [] (Block [Assign "z" (Call "f" [Val 10]),Print (Var "z"),Ret (Val 0)])]
 test11 = [Def "gcd" ["b"] (Block [Assign "a" (Val 2854),While (NEq (Var "b") (Val 0)) (Block [Assign "t" (Var "b"),Assign "b" (Mod (Var "a") (Var "b")),Assign "a" (Var "t")]),Ret (Var "a")]),Def "main" [] (Block [Assign "m" (Val 264),Assign "res" (Call "gcd" [Var "m"]),Print (Var "res"),Ret (Val 0)])]
 test12 = [Def "Q" ["n"] (Block [IfElse (LtEq (Var "n") (Val 2)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 1)])]) (Call "Q" [Sub (Var "n") (Call "Q" [Sub (Var "n") (Val 2)])]))])]),Def "main" [] (Block [Assign "k" (Val 1),While (Lt (Var "k") (Val 20)) (Block [Assign "q" (Call "Q" [Var "k"]),Print (Var "q"),Assign "k" (Plus (Var "k") (Val 1))]),Ret (Val 0)])]
-testFib = [Def "fib" ["x"] (Block [If (Eq (Var "x") (Val 0)) (Block [Ret (Val 0)]),IfElse (Eq (Var "x") (Val 1)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "x" (Call "fib" [Val 4]),Print (Val 4),Ret (Val 0)])]
+testFib = [Def "fib" ["x"] (Block [If (Eq (Var "x") (Val 0)) (Block [Ret (Val 1)]),IfElse (Eq (Var "x") (Val 1)) (Block [Ret (Val 1)]) (Block [Ret (Plus (Call "fib" [Sub (Var "x") (Val 1)]) (Call "fib" [Sub (Var "x") (Val 2)]))])]),Def "main" [] (Block [Assign "x" (Call "fib" [Val 4]),Print (Var "x"),Ret (Val 0)])]
+test13 = [Def "f" ["n"] (Block [Print (Var "n"),Ret (Var "n")]),Def "main" [] (Block [Assign "k" (Val 1),If (Or (Lt (Call "f" [Var "k"]) (Val 2)) (Gt (Call "f" [Plus (Var "k") (Val 1)]) (Val 10))) (Block [Assign "k" (Plus (Var "k") (Val 2)),Print (Var "k")]),Assign "k" (Val 10),If (And (Lt (Call "f" [Var "k"]) (Val 2)) (Gt (Call "f" [Plus (Var "k") (Val 1)]) (Val 0))) (Block [Assign "k" (Plus (Var "k") (Val 2)),Print (Var "k")]),Ret (Val 0)])]
+test14 = [Def "main" [] (Block [Assign "k" (Val 0),While (Gt (Val 2) (Val 1)) (Block [Assign "k" (Plus (Var "k") (Val 1)),IfElse (Lt (Var "k") (Val 4)) (Block [Continue]) (Block [If (Gt (Var "k") (Val 6)) (Block [Break])]),Print (Var "k")]),Ret (Val 0)])]
+testBreak = [Def "main" [] (Block [Assign "x" (Val 1),While (Lt (Var "x") (Val 20)) (Block [If (Eq (Var "x") (Val 10)) (Block [Break]),Assign "x" (Plus (Var "x") (Val 1))]),Print (Var "x"),Ret (Val 0)])]
+testCont = [Def "main" [] (Block [Assign "x" (Val 1),While (Lt (Var "x") (Val 20)) (Block [IfElse (Eq (Var "x") (Val 10)) (Block [Print (Val 111),Assign "x" (Plus (Var "x") (Val 1)),Continue]) (Block [If (Eq (Var "x") (Val 11)) (Block [Break])]),Assign "x" (Plus (Var "x") (Val 1))]),Print (Var "x"),Ret (Val 0)])]
 
 backPatch :: [Int] -> Int -> IC_Program -> IC_Program
 backPatch [] set ic = ic
@@ -126,7 +135,7 @@ compileStmt (Def name params body) ic bp temp =
                             -- traceShowM (ic2 !! 1)
                             compileStmt body ic2 bp temp
                 else do put newG
-                        traceShowM "This is being hit for some resone"
+                        --traceShowM "This is being hit for some resone"
                         compileStmt body ic bp temp
 compileStmt (Ret expr) ic bp temp =
     do (locRet,ic2,bp2,temp2) <- compileExpr expr ic bp temp
@@ -152,25 +161,30 @@ compileStmt (Print expr) ic bp temp =
 compileStmt (Break) ic (tL,fL,cL,bL) temp = 
     let ic2 = ic ++ [Jump' 0]
         b = [length ic2]
-    in return (ic2, (tL,fL,cL,(bL++b)), temp)
+    in do --traceShowM "break being hit"
+          --traceShowM b
+          return (ic2, (tL,fL,cL,(bL++b)), temp)
 compileStmt (Continue) ic (tL,fL,cL,bL) temp = 
     let ic2 = ic ++ [Jump' 0]
         c = [length ic2]
-    in return (ic2, (tL,fL,(cL++c),bL),temp)
+    in do --traceShowM "cont being hit"
+          --traceShowM c
+          return (ic2, (tL,fL,(cL++c),bL),temp)
 compileStmt (Block body) ic bp temp =
-    do --traceShowM body
+    do --traceShowM bp
        (ic2, bp2, temp2) <- compileProgram body ic temp bp
        --traceShowM $ "Body compiled " ++ (show ic2)
        return (ic2, bp2, temp2)
 compileStmt (While cond body) ic bp temp =
     let start = length ic
      in do (_,ic2,(tl,fl,cl,bl),temp2) <- compileExpr cond ic bp temp
-           -- traceShowM "while started"
+           -- traceShowM $ "while started" ++ (show cl)
            let loop = length ic2
             in do (ic3, (_,_,cl2,bl2), temp3) <- compileStmt body ic2 (tl,fl,cl,bl) temp2
-                  -- traceShowM $ "true list " ++ (show tl)
-                  -- traceShowM $ "false list " ++ (show fl)
+                  -- traceShowM $ "bl2 list in while " ++ (show bl2)
+                  -- traceShowM $ "cl2 list " ++ (show cl2)
                   -- traceShowM $ "breakList " ++ (show bl)
+                  -- traceShowM body
                   let ic4 = backPatch tl loop ic3
                       ic5 = ic4 ++ [Jump' (start)]
                       ic6 = backPatch (bl2++fl) (length ic5) ic5
@@ -180,37 +194,37 @@ compileStmt (While cond body) ic bp temp =
 compileStmt (If cond body) ic bp temp = 
     do (_,ic2,(tl,fl,cl,bl),temp2) <- compileExpr cond ic bp temp
        let code = length ic2
-        in do (ic3,bp2,temp3) <- compileStmt body ic2 (tl,fl,cl,bl) temp2
+        in do (ic3,(_,_,cl2,bl2),temp3) <- compileStmt body ic2 (tl,fl,cl,bl) temp2
               -- traceShowM "started if"
               -- traceShowM ic3
               -- traceShowM (length ic3)
               -- traceShowM $ "true list inside if " ++ (show tl)
               let ic4 = backPatch tl code ic3
-                in do --traceShowM ic4
+                in do --traceShowM $ "inside if " ++ (show bl2)
                       let ic5 = backPatch fl (length ic4) ic4
-                        in do return (ic5, ([],[],cl,bl),temp3)
+                        in do return (ic5, ([],[],cl2,bl2),temp3)
 compileStmt (IfElse cond body body2) ic bp temp =
     do (_,ic2,(tl,fl,cl,bl),temp2) <- compileExpr cond ic bp temp
        let code = length ic2
-        in do (ic3, bp2,temp3) <- compileStmt body ic2 (tl,fl,cl,bl) temp2
+        in do (ic3, (tl2,fl2,cl2,bl2),temp3) <- compileStmt body ic2 (tl,fl,cl,bl) temp2
               -- traceShowM "If block "
-              -- traceShowM cond
+              -- traceShowM cl
+              -- traceShowM bl
               -- traceShowM body
-              -- traceShowM (length ic3)
               -- traceShowM $ "tl: " ++ (show tl)
               -- traceShowM $ "fl: " ++ (show fl)
               let ic4 = backPatch tl code ic3
                   ic5 = backPatch fl ((length ic4) + 1) ic4
                   ic6 = ic5 ++ [Jump' 0] --jump to end of else
                   elseSkip = length ic6
-                in do (ic7, (_,_,cl2,bl2),temp4) <- compileStmt body2 ic6 bp2 temp3
+                in do (ic7, (_,_,cl3,bl3),temp4) <- compileStmt body2 ic6 (tl2,fl2,cl2,bl2) temp3
                       let ic8 = backPatch [elseSkip] (length ic7) ic7
                        in do --traceShowM $ "else block "
-                             -- traceShowM $ "tl2: " ++ (show tl2)
+                             -- traceShowM $ "bl2: " ++ (show bl2)
                              -- traceShowM $ "fl2: " ++ (show fl2)
-                             return (ic8,([],[],cl2,bl2), temp4)
+                             return (ic8,([],[],cl2++cl3,bl2++bl3), temp4)
 
-
+testFinal = P [Def "main" [] (Block [Assign "x" (Val 1),While (Lt (Var "x") (Val 20)) (Block [IfElse (Eq (Var "x") (Val 10)) (Block [Print (Val 111),Assign "x" (Plus (Var "x") (Val 1)),Continue]) (Block [If (Eq (Var "x") (Val 11)) (Block [Break])]),Assign "x" (Plus (Var "x") (Val 1))]),Print (Var "x"),Ret (Val 0)])]
 
 t = [Def "main" [] (Block [Assign "x" (Val 4),Assign "y" (Val 2),Assign "z" (Val (-1)),IfElse (LtEq (Var "z") (Var "y")) (Block [Print (Var "x"),IfElse (Gt (Var "x") (Var "z")) (Block [Print (Var "y")]) (Block [Print (Var "z")])]) (Block [Print (Var "z")]),Ret (Val 0)])]
 ifInside = [Def "main" [] (Block [Assign "x" (Val 2),IfElse (Eq (Var "x") (Val 2)) (Block [If (Eq (Var "x") (Val 3)) (Block [Print (Val 3)]),Print (Val 4)]) (Block [Print (Var "x")])])]
@@ -229,7 +243,7 @@ compileExpr :: Expr -> IC_Program -> BackPatch -> Temp -> StatefulUnsafe Global 
 compileExpr (Val i) ic bp (t:rest) = 
     let newAddition = [(Assign' (t) (Val' (fromIntegral i)))]
         ic2 = ic ++ newAddition
-    in do traceShowM i
+    in do --traceShowM i
           return (t, ic2, bp, rest)
 compileExpr (Plus l r) ic bp temp = 
     do (locX, ic2, bp2, temp2) <- compileExpr l ic bp temp
@@ -241,8 +255,8 @@ compileExpr (Sub l r) ic bp temp =
        return (t, (ic3++[(Minus' (t) (locX) (locY))]), bp3, temp3)
 compileExpr (Mult l r) ic bp temp =
     do (locX, ic2, bp2, temp2) <- compileExpr l ic bp temp
-       traceShowM $"Mult left " ++ (show l)
-       traceShowM $ "Mult right " ++ (show r)
+       -- traceShowM $"Mult left " ++ (show l)
+       -- traceShowM $ "Mult right " ++ (show r)
        (locY, ic3, bp3, (t:temp3)) <- compileExpr r ic2 bp2 temp2
        return (t, (ic3++[(Times' (t) (locX) (locY))]), bp3, temp3)
 compileExpr (Div l r) ic bp temp =
@@ -326,7 +340,7 @@ compileExpr (UnaryMinus x) ic bp temp =
        -- traceShowM $ "Uminus "++ (show x)
        -- traceShowM locX
        let ic3 = ic2 ++ [(Uminus' t locX)]
-        in do traceShowM ic3
+        in do --traceShowM ic3
               return (t, ic3, bp2, temp2)
 compileExpr (Call func []) ic bp (t:temp) = 
     do g <- get 
@@ -345,13 +359,12 @@ compileExpr (Call func (x:xs)) ic bp temp =
        case Map.lookup func g of
         Nothing -> err "Function does not exist"
         Just (line, (p:ps)) -> if (length (p:ps)) == (length (x:xs))
-                                then let ic2 = ic ++ [Push']
-                                      in do traceShowM x
-                                            (locX, ic3, bp2, (t:temp2)) <- compileExpr x ic2 bp temp
-                                            -- traceShowM ic3
-                                            -- traceShowM p
-                                            let ic4 = ic3 ++ [Assign' (Var' p) locX, Call' line, Assign' t (Var' "_ret_val")]
-                                             in do return (t,ic4,bp,temp) 
+                                then do --traceShowM $"function in call " ++ (show x)
+                                        (locX, ic2, bp2, (t:temp2)) <- compileExpr x ic bp temp
+                                        -- traceShowM locX
+                                        -- traceShowM ic2
+                                        let ic3 = ic2 ++ [Push', Assign' (Var' p) locX, Call' line, Assign' t (Var' "_ret_val")]
+                                         in do return (t,ic3,bp,temp2) 
                                 else err "Pramas do not match up"
 
 
