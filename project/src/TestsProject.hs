@@ -266,3 +266,47 @@ test12 = concat [
 ------------------------------------------------------------------
 
 
+testIfElseInside = concat[
+   " def main(){",
+   "    x = 4;                    ",
+   "    y = 2;                    ",
+   "    z = -1;                    ",
+  "    if(z <= y) {                    ",
+   "        print x;                    ",
+   "        if(x > z) {                    ",
+   "            print y;                    ",
+   "        }                    ",
+   "        else {                    ",
+   "            print z;                    ",
+   "        }                    ",
+   "    } else {                    ",
+   "        print z;                     ",
+   "    }                    ",
+   "    return 0;                     ",
+   "}                    "]
+
+testIfInside = concat [
+   "def main(){",
+   "  x = 2;",
+   "  if(x==2){",
+   "     if(x==3){",
+   "        print 3;",
+   "     }",
+   "     print 4;",
+   "  }",
+   "  else{ ",
+   "  print x;",
+   "  }",
+   "}"
+
+   ]
+
+testIf = concat [
+   "def main(){",
+   "  x = 2;",
+   "  if(x==3){",
+   "     print 3;",
+   " } print x;",
+   " return 0;",
+   " }"
+   ]

@@ -73,11 +73,8 @@ ints = do res <- intParser
 
 unaryMinus :: Parser Expr
 unaryMinus = (do token $ literal "-"
-                 expr <- token $ orParser
-                 return $ UnaryMinus expr) <||>
-              (do token $ literal "-"
-                  expr <- token $ vars
-                  return $ UnaryMinus expr)
+                 expr <- vars <||> parens
+                 return $ UnaryMinus expr)
 
 vars :: Parser Expr
 vars = do var <- varParser

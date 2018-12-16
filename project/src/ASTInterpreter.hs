@@ -322,6 +322,8 @@ evalExpr (name, (Not expr)) = do x <- evalExpr (name, expr)
 --                                                   Just val -> do return $ -val
 --                                                   Nothing -> err "Variable does not exist"
 evalExpr (name, (UnaryMinus expr)) = do res <- evalExpr (name, expr)
+                                        traceShowM expr
+                                        traceShowM res
                                         return $ 0-res
 evalExpr (name, (Var var)) = do cState <- get
                                 --traceShowM $ "Looking up variable " ++ var
@@ -375,3 +377,7 @@ evalArgs (name, (x:xs)) = do res <- evalExpr (name, x)
 --                                  case res of
 --                                   res -> res
 
+
+
+
+plzWork = [Def "main" [] (Block [Assign "x" (Val 6),Print (Var "x"),Assign "y" (Val 8),Print (Var "y"),Assign "z" (Plus (Div (Mult (Var "x") (Var "y")) (Val 3)) (UnaryMinus (Plus (Var "x") (Val 2)))),Print (Var "z"),Ret (Val 0)])]
