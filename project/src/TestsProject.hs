@@ -169,6 +169,7 @@ test7 = concat [
 --Test 8: multiple function calls 
 test8 = concat [
    "def succ(x) {                    ",
+   "    print x;",
    "    return x + 1;                    ",
    "}                    ",
    "                    ",
@@ -264,6 +265,25 @@ test12 = concat [
    "}                    "]
 
 ------------------------------------------------------------------
+
+
+testFib = concat [
+   "def fib(x){",
+   "  if(x==0){",
+   "    return 0;",
+   "  }if(x==1){",
+   "    return 1;",
+   "  }else{",
+   "     return fib(x-1) + fib(x - 2);",
+   "   }}",
+   "def main(){",
+   "  x = fib(4);",
+   "  print 4;",
+   "  return 0;",
+   "} "]
+
+
+
 
 
 testIfElseInside = concat[
