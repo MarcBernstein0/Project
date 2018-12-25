@@ -120,13 +120,13 @@ ifParser = do token $ literal "if"
 
 ifElseParser :: Parser Stmt
 ifElseParser = do token $ literal "if"
-                  traceShowM "started parser"
+                  -- traceShowM "started parser"
                   token $ literal "("
                   expr <- orParser
-                  traceShowM expr
+                  -- traceShowM expr
                   token $ literal ")"
                   block <- blockParser
-                  traceShowM block
+                  -- traceShowM block
                   token $ literal "else"
                   blockF <- blockParser 
                   return $ IfElse expr block blockF
@@ -136,7 +136,7 @@ whileParser :: Parser Stmt
 whileParser = do token $ literal "while"
                  token $ literal "("
                  expr <- orParser 
-                 traceShowM expr
+                 -- traceShowM expr
                  token $ literal ")"
                  block <- blockParser
                  return $ While expr block
